@@ -1,25 +1,47 @@
 #include <Arduino.h>
 #include "ShiftRegister.cpp"
-#include "ConnectionHandler.cpp"
 
 void PowerOnSetUp();
 
 class TIMER
 {
-    public:
-    unsigned long cas1, cas2, perioda;
-    TIMER(unsigned long per)
+  public:
+  unsigned long casstopa, casovani_;
+  bool flip, ff;
+  TIMER (unsigned long casovani, bool flipflop = false)
+  {
+    casovani_ = casovani;
+    flip = flipflop;
+    casstopa = 0;
+  }
+  bool Update()
+  {
+    if (flip)
     {
-        perioda = per;
-        cas1 = millis();
-        cas2 = 0;
+      if (millis() > (casstopa + casovani_))
+      {
+        ff = !ff;
+        casstopa = millis();
+        return ff;
+      }
+      else return ff;
     }
-
-    bool update()
+    else
     {
-        if (millis() > (cas2 + perioda)) {cas2 = millis(); return true;}
-        else return false;
+      if (millis() > (casstopa + casovani_))
+      {
+        casstopa = millis();
+        return true;
+      }
+      else return false;
     }
+  }
+  void Start(unsigned long novecasovani = 0)
+  {
+    if (novecasovani != 0) casovani_ = novecasovani; 
+    casstopa = millis();
+    ff = false;
+  }
 };
 
 void setup()
@@ -36,8 +58,8 @@ void loop()
     bool flip1 = false, flip2 = false;
     while(true)
     {
-        if (tmr1.update()) flip1 = !flip1;
-        if (tmr2.update()) flip2 = !flip2;
+        if (tmr1.Update()) flip1 = !flip1;
+        if (tmr2.Update()) flip2 = !flip2;
         SrDigitalWrite(25, flip1);
         SrDigitalWrite(26, flip2);
     }
