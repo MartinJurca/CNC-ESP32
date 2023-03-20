@@ -7,7 +7,7 @@
 #define srclk 27
 #define srser 32
 #define srregclk 33
-#define srfreq 8000000
+#define srfreq 10000000
 
 void SrBegin();
 void IRAM_ATTR SrWrite();

@@ -4,7 +4,7 @@
 #ifndef _STEPPER_MOTOR_
 #define _STEPPER_MOTOR_
 
-const struct driverpins
+struct driverpins
 {
     uint8_t dir;
     uint8_t step;
@@ -16,7 +16,7 @@ const struct driverpins
     uint8_t enable;
 };
 
-bool microsteppingtable[5][3]
+const bool microsteppingtable[5][3]
 {
     {false, false, false},
     {true, false, false},
@@ -33,12 +33,16 @@ class STEPPERMOTOR
     bool direction;
     uint8_t stepping;
     public:
-    STEPPERMOTOR(driverpins pins_struct)
+    STEPPERMOTOR(const driverpins pins_struct)
     {
         pins = pins_struct;
         enabled = false;
         direction = false;
         stepping = 0;
+    }
+
+    void Begin()
+    {
         SrMask(pins.ms1, microsteppingtable[0][0]);
         SrMask(pins.ms2, microsteppingtable[0][1]);
         SrMask(pins.ms3, microsteppingtable[0][2]);
@@ -50,13 +54,13 @@ class STEPPERMOTOR
         SrWrite();
     }
 
-    void Enable()
+    void IRAM_ATTR Enable()
     {
         enabled = true;
         SrDigitalWrite(pins.enable, LOW);
     }
 
-    void Disable()
+    void IRAM_ATTR Disable()
     {
         enabled = false;
         SrDigitalWrite(pins.enable, HIGH);
@@ -108,6 +112,15 @@ class STEPPERMOTOR
         SrMask(m1.pins.step, LOW);
         SrMask(m2.pins.step, LOW);
         SrMask(m3.pins.step, LOW);
+        SrWrite();
+        return true;
+    }
+
+    friend bool IRAM_ATTR FinishMaskStep(STEPPERMOTOR &m1)
+    {
+        if (!m1.enabled) return false;
+        SrMask(m1.pins.dir, m1.direction);
+        SrMask(m1.pins.step, LOW);
         SrWrite();
         return true;
     }
