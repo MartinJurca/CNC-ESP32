@@ -69,7 +69,7 @@ class STEPPERMOTOR
     void Reset()
     {
         SrDigitalWrite(pins.reset, LOW);
-        delay(2);
+        vTaskDelay(2 / portTICK_PERIOD_MS);
         SrDigitalWrite(pins.reset, HIGH);
     }
 
@@ -81,6 +81,20 @@ class STEPPERMOTOR
         SrMask(pins.ms2, microsteppingtable[ms][1]);
         SrMask(pins.ms3, microsteppingtable[ms][2]);
         SrWrite();
+        return true;
+    }
+
+    uint8_t GetStepping()
+    {
+        return stepping;
+    }
+
+    bool IRAM_ATTR Step()
+    {
+        if (!enabled) return false;
+        SrMask(pins.dir, direction);
+        SrDigitalWrite(pins.step, HIGH);
+        SrDigitalWrite(pins.step, LOW);
         return true;
     }
 
@@ -112,6 +126,17 @@ class STEPPERMOTOR
         SrMask(m1.pins.step, LOW);
         SrMask(m2.pins.step, LOW);
         SrMask(m3.pins.step, LOW);
+        SrWrite();
+        return true;
+    }
+
+    friend bool IRAM_ATTR FinishMaskStep(STEPPERMOTOR &m1, STEPPERMOTOR &m2)
+    {
+        if (!(m1.enabled && m2.enabled)) return false;
+        SrMask(m1.pins.dir, m1.direction);
+        SrMask(m2.pins.dir, m2.direction);
+        SrMask(m1.pins.step, LOW);
+        SrMask(m2.pins.step, LOW);
         SrWrite();
         return true;
     }
