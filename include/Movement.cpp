@@ -273,14 +273,14 @@ namespace AXES
                     switch (direction)
                     {
                         case 1:
-                        if (!psmy->Step(false)) return false;
+                        if (!psmy->Step(true)) return false;
                         realpoz[y]++, artpoz[y]++;
                         delayMicroseconds(xydelay);
                         break;
 
                         case 2:
-                        if (!psmx->MaskStep(false)) return false;
-                        if (!psmy->MaskStep(false)) return false;
+                        if (!psmx->MaskStep(true)) return false;
+                        if (!psmy->MaskStep(true)) return false;
                         SrWrite();
                         realpoz[x]++, artpoz[x]++;
                         realpoz[y]++, artpoz[y]++;
@@ -289,14 +289,14 @@ namespace AXES
                         break;
 
                         case 3:
-                        if (!psmx->Step(false)) return false;
+                        if (!psmx->Step(true)) return false;
                         realpoz[x]++, artpoz[x]++;
                         delayMicroseconds(xydelay);
                         break;
 
                         case 4:
-                        if (!psmx->MaskStep(false)) return false;
-                        if (!psmy->MaskStep(true)) return false;
+                        if (!psmx->MaskStep(true)) return false;
+                        if (!psmy->MaskStep(false)) return false;
                         SrWrite();
                         realpoz[x]++, artpoz[x]++;
                         realpoz[y]--, artpoz[y]--;
@@ -305,14 +305,14 @@ namespace AXES
                         break;
 
                         case 5:
-                        if (!psmy->Step(true)) return false;
+                        if (!psmy->Step(false)) return false;
                         realpoz[y]--, artpoz[y]--;
                         delayMicroseconds(xydelay);
                         break;
 
                         case 6:
-                        if (!psmx->MaskStep(true)) return false;
-                        if (!psmy->MaskStep(true)) return false;
+                        if (!psmx->MaskStep(false)) return false;
+                        if (!psmy->MaskStep(false)) return false;
                         SrWrite();
                         realpoz[x]--, artpoz[x]--;
                         realpoz[y]--, artpoz[y]--;
@@ -321,14 +321,14 @@ namespace AXES
                         break;
 
                         case 7:
-                        if (!psmx->Step(true)) return false;
+                        if (!psmx->Step(false)) return false;
                         realpoz[x]--, artpoz[x]--;
                         delayMicroseconds(xydelay);
                         break;
 
                         case 8:
-                        if (!psmx->MaskStep(true)) return false;
-                        if (!psmy->MaskStep(false)) return false;
+                        if (!psmx->MaskStep(false)) return false;
+                        if (!psmy->MaskStep(true)) return false;
                         SrWrite();
                         realpoz[x]--, artpoz[x]--;
                         realpoz[y]++, artpoz[y]++;

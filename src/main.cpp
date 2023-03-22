@@ -18,8 +18,8 @@ void PowerOnSetUp();
 
 CMD CH('#', '<', '>');
 const driverpins mz = {1, 2, 3, 4, 5, 6, 7, 8};
-const driverpins my = {9, 10, 11, 12, 13, 14, 15, 16};
-const driverpins mx = {17, 18, 19, 20, 21, 22, 23, 24};
+const driverpins mx = {9, 10, 11, 12, 13, 14, 15, 16};
+const driverpins my = {17, 18, 19, 20, 21, 22, 23, 24};
 STEPPERMOTOR smx(mx), smy(my), smz(mz);
 motion pohyb;
 
@@ -51,10 +51,10 @@ void setup()
   pohyb.psteps = new uint8_t[pohyb.size];
   for (int i = 0; i < 64; i++)
   {
-    pohyb.psteps[i] = 0b01101111;
-    pohyb.psteps[i + 64] = 0b01001111;
-    pohyb.psteps[i + 128] = 0b10101111;
-    pohyb.psteps[i + 192] = 0b10001111;
+    pohyb.psteps[i] = 0b01011111;
+    pohyb.psteps[i + 64] = 0b01111111;
+    pohyb.psteps[i + 128] = 0b10011111;
+    pohyb.psteps[i + 192] = 0b10111111;
   }
   int navratka = 0, parametr = 0;
   float rychlost = 0.0;
@@ -74,6 +74,9 @@ void setup()
         ENDSTOP::YEnable();
         ENDSTOP::ZEnable();
         ENDSTOP::ExZEnable();
+        ENDSTOP::flagx = false;
+        ENDSTOP::flagy = false;
+        ENDSTOP::flagz = false;
         smx.Enable();
         smy.Enable();
         break;
