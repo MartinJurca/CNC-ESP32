@@ -13,6 +13,7 @@ class FAN
     {
         channel = pwm_channel;
         pin = fan_pin;
+        pinMode(fan_pin, OUTPUT);
         ledcSetup(channel, 20000, 8);
         ledcAttachPin(pin, channel);
         ledcWrite(channel, 0);

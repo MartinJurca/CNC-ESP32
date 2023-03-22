@@ -16,7 +16,7 @@ void IRAM_ATTR SrMask(uint8_t pin, bool state);
 
 uint32_t srreg = 0;
 
-SPIClass* SRVSPI = NULL;
+SPIClass* SRVSPI = nullptr;
 
 void SrBegin()
 {

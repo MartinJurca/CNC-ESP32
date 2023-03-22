@@ -86,10 +86,11 @@ namespace AXES
     const uint8_t x = 0, y = 1, z = 2;
     const uint8_t acceleration = 10;
     const uint8_t acctreshold = 50;
+    const float xymaxspeed = 10, zmaxspeed = 50;
     const uint16_t maxlenght[3] = {5000, 5000, 10000};
     int16_t realpoz[3] = {0, 0, 0};
     int16_t artpoz[3] = {0, 0, 0};
-    float speed = 0, speedz = 0;
+    float speed = 1, speedz = 1;
     bool iscalibrated[3] = {false, false, false};
     bool hasfailed = false;
     bool enabled = true;
@@ -97,13 +98,13 @@ namespace AXES
     STEPPERMOTOR* psmy = nullptr;
     STEPPERMOTOR* psmz = nullptr;
 
-    uint8_t GetCount(uint8_t datain)
+    uint8_t IRAM_ATTR GetCount(uint8_t datain)
     {
         datain &= 0b00001111;
         return datain += 1;
     }
 
-    uint8_t GetDirection(uint8_t datain)
+    uint8_t IRAM_ATTR GetDirection(uint8_t datain)
     {
         datain &= 0b11110000;
         switch (datain)
@@ -124,6 +125,26 @@ namespace AXES
         }
     }
 
+    uint8_t IRAM_ATTR GetMultiplier(uint8_t axis)
+    {
+        switch (axis)
+        {
+            case 0: axis = psmx->GetStepping(); break;
+            case 1: axis = psmy->GetStepping(); break;
+            case 2: axis = psmz->GetStepping(); break;
+            default: return 1;
+        }
+        switch (axis)
+        {
+            case 0: return 1;
+            case 1: return 2;
+            case 2: return 4;
+            case 3: return 8;
+            case 4: return 16;
+            default: return 0;
+        }
+    }
+
     bool IRAM_ATTR HardwareCheck()
     {
         if (ENDSTOP::flagx) return false;
@@ -139,57 +160,62 @@ namespace AXES
         const uint8_t srwritetime = 24;
         const float mmperstep_trap = 0.04;
         const float mmperstep_met = 0.00625;
+        unsigned long del = 0;
         switch (axis)
         {
             case 0:
             if (psmx == nullptr) return 100000UL;
             spd /= mmperstep_trap;
-            unsigned long del = 1000000UL / long(spd + 0.5);
+            del = 1000000UL / long(spd + 0.5);
             switch (psmx->GetStepping())
             {
-                case 0: del; break;
-                case 1: del / 2;break;
-                case 2: del / 4; break;
-                case 3: del / 8; break;
-                case 4: del / 16; break;
+                case 0: break;
+                case 1: del /= 2;break;
+                case 2: del /= 4; break;
+                case 3: del /= 8; break;
+                case 4: del /= 16; break;
             }
             if ((del - srwritetime) < srwritetime) return 0;
             else return del - srwritetime;
 
             case 1:
-            if (psmx == nullptr) return 100000UL;
+            if (psmy == nullptr) return 100000UL;
             spd /= mmperstep_trap;
-            unsigned long del = 1000000UL / long(spd + 0.5);
+            del = 1000000UL / long(spd + 0.5);
             switch (psmy->GetStepping())
             {
                 case 0: del; break;
-                case 1: del / 2;break;
-                case 2: del / 4; break;
-                case 3: del / 8; break;
-                case 4: del / 16; break;
+                case 1: del /= 2;break;
+                case 2: del /= 4; break;
+                case 3: del /= 8; break;
+                case 4: del /= 16; break;
             }
             if ((del - srwritetime) < srwritetime) return 0;
             else return del - srwritetime;
 
             case 2:
-            if (psmx == nullptr) return 100000UL;
+            if (psmz == nullptr) return 100000UL;
             spd /= mmperstep_met;
-            unsigned long del = 1000000UL / long(spd + 0.5);
+            del = 1000000UL / long(spd + 0.5);
             switch (psmz->GetStepping())
             {
                 case 0: del; break;
-                case 1: del / 2;break;
-                case 2: del / 4; break;
-                case 3: del / 8; break;
-                case 4: del / 16; break;
+                case 1: del /= 2;break;
+                case 2: del /= 4; break;
+                case 3: del /= 8; break;
+                case 4: del /= 16; break;
             }
             if ((del - srwritetime) < srwritetime) return 0;
             else return del - srwritetime;
         }
+        return 100000UL;
     }
 
     bool ExeMotion(const motion &motion_data, bool noacc = true)
     {
+        if (psmx == nullptr) return false;
+        else if (psmy == nullptr) return false;
+        else if (psmz == nullptr) return false;
         if (motion_data.size == 0) return false;
         if (!HardwareCheck()) return false;
         if (noacc)
@@ -200,7 +226,49 @@ namespace AXES
             {
                 uint8_t cycles = GetCount(motion_data.psteps[field]);
                 uint8_t direction = GetDirection(motion_data.psteps[field]);
-                for (uint8_t c = 0; c < cycles; c++)
+                uint8_t mtp = 1;
+                uint8_t tst1, tst2;
+                switch (direction)
+                {
+                    case 1: mtp = GetMultiplier(y); break;
+
+                    case 2:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 3: mtp = GetMultiplier(x); break;
+
+                    case 4:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 5: mtp = GetMultiplier(y);
+
+                    case 6:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 7: mtp = GetMultiplier(x);
+
+                    case 8:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 9: mtp = GetMultiplier(z); break;
+
+                    case 10: mtp = GetMultiplier(z); break;
+                    
+                    default: break;
+                }
+                for (uint16_t c = 0; c < (cycles * mtp); c++)
                 {
                     switch (direction)
                     {
@@ -213,6 +281,7 @@ namespace AXES
                         case 2:
                         if (!psmx->MaskStep(false)) return false;
                         if (!psmy->MaskStep(false)) return false;
+                        SrWrite();
                         realpoz[x]++, artpoz[x]++;
                         realpoz[y]++, artpoz[y]++;
                         FinishMaskStep(*psmx, *psmy);
@@ -228,6 +297,7 @@ namespace AXES
                         case 4:
                         if (!psmx->MaskStep(false)) return false;
                         if (!psmy->MaskStep(true)) return false;
+                        SrWrite();
                         realpoz[x]++, artpoz[x]++;
                         realpoz[y]--, artpoz[y]--;
                         FinishMaskStep(*psmx, *psmy);
@@ -243,6 +313,7 @@ namespace AXES
                         case 6:
                         if (!psmx->MaskStep(true)) return false;
                         if (!psmy->MaskStep(true)) return false;
+                        SrWrite();
                         realpoz[x]--, artpoz[x]--;
                         realpoz[y]--, artpoz[y]--;
                         FinishMaskStep(*psmx, *psmy);
@@ -258,6 +329,7 @@ namespace AXES
                         case 8:
                         if (!psmx->MaskStep(true)) return false;
                         if (!psmy->MaskStep(false)) return false;
+                        SrWrite();
                         realpoz[x]--, artpoz[x]--;
                         realpoz[y]++, artpoz[y]++;
                         FinishMaskStep(*psmx, *psmy);

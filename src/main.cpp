@@ -11,218 +11,188 @@
 #include "EndStop.cpp"
 #include "Fan.cpp"
 #include "Spindle.cpp"
+#include "Movement.cpp"
+#include "Timer.cpp"
 
 void PowerOnSetUp();
-TaskHandle_t pagman_task;
 
-class TIMER
-{
-  public:
-  unsigned long casstopa, casovani_;
-  bool flip, ff;
-  TIMER (unsigned long casovani, bool flipflop = false)
-  {
-    casovani_ = casovani;
-    flip = flipflop;
-    casstopa = 0;
-  }
-  bool Update()
-  {
-    if (flip)
-    {
-      if (millis() > (casstopa + casovani_))
-      {
-        ff = !ff;
-        casstopa = millis();
-        return ff;
-      }
-      else return ff;
-    }
-    else
-    {
-      if (millis() > (casstopa + casovani_))
-      {
-        casstopa = millis();
-        return true;
-      }
-      else return false;
-    }
-  }
-  void Start(unsigned long novecasovani = 0)
-  {
-    if (novecasovani != 0) casovani_ = novecasovani; 
-    casstopa = millis();
-    ff = false;
-  }
-};
-
-void Pagman(void * parameter)
-{
-  const uint8_t anx = 25, any = 26, anz = 4;
-  pinMode(anx, INPUT);
-  pinMode(any, INPUT);
-  pinMode(anz, INPUT);
-  pinMode(34, INPUT);
-  pinMode(36, INPUT);
-  pinMode(39, INPUT);
-  PowerOnSetUp();
-  //
-  pinMode(SPINDLE::pin, OUTPUT);
-  pinMode(SPINDLE::pin, LOW);
-  while (true)
-  {
-    if (Serial.available())
-    {
-      char neco = Serial.read();
-      if (neco == '1') digitalWrite(SPINDLE::pin, HIGH);
-      else digitalWrite(SPINDLE::pin, LOW);
-      vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-  }
-  //
-  CMD CMDHAND('#', '<', '>');
-  int prodleva = 1;
-  bool smer1 = false, smer2 = false, smer3 = false;
-  int mikro = 0;
-  driverpins mz = {1, 2, 3, 4, 5, 6, 7, 8};
-  driverpins my = {9, 10, 11, 12, 13, 14, 15, 16};
-  driverpins mx = {17, 18, 19, 20, 21, 22, 23, 24};
-  STEPPERMOTOR sx(mx), sy(my), sz(mz);
-  sx.Begin();
-  sy.Begin();
-  sz.Begin();
-  ENDSTOP::psmx = &sx;
-  ENDSTOP::psmy = &sy;
-  ENDSTOP::psmz = &sz;
-  CMDHAND.PridejPrikaz(1, "fan", true);
-  CMDHAND.PridejPrikaz(2, "motor", true);
-  CMDHAND.PridejPrikaz(3, "enable", false);
-  CMDHAND.PridejPrikaz(4, "disable", false);
-  CMDHAND.PridejPrikaz(5, "krok", true);
-  char uloha = ' ';
-  int anxdata = 0, anydata = 0, anzdata = 0;
-  TIMER TMRCMD(100);
-  TIMER TMRAN(10);
-  while (true)
-  {
-    
-    if (TMRCMD.Update())
-    {
-      if (Serial.available())
-    {
-      uloha = Serial.read();
-      switch (uloha)
-      {
-        case 'e':
-        sx.Enable();
-        sy.Enable();
-        sz.Enable();
-        ENDSTOP::XEnable();
-        ENDSTOP::YEnable();
-        //ENDSTOP::ZEnable();
-        //ENDSTOP::ExZEnable();
-        break;
-        case 'd':
-        sx.Disable();
-        sy.Disable();
-        sz.Disable();
-        ENDSTOP::XDisable();
-        ENDSTOP::YDisable();
-        //ENDSTOP::ZDisable();
-        //ENDSTOP::ExZDisable();
-        break;
-        case '0':
-        sx.SetStepping(0);
-        sy.SetStepping(0);
-        sz.SetStepping(0);
-        break;
-        case '1':
-        sx.SetStepping(1);
-        sy.SetStepping(1);
-        sz.SetStepping(1);
-        break;
-        case '2':
-        sx.SetStepping(2);
-        sy.SetStepping(2);
-        sz.SetStepping(2);
-        break;
-        case '3':
-        sx.SetStepping(3);
-        sy.SetStepping(3);
-        sz.SetStepping(3);
-        break;
-        case '4':
-        sx.SetStepping(4);
-        sy.SetStepping(4);
-        sz.SetStepping(4);
-        break;
-      }
-    }
-    }
-    
-    if (false)
-    {
-      if (TMRAN.Update()) anxdata = analogRead(anx);
-      if (anxdata < 1700)
-      {
-        uint32_t dylaj = 20000;
-        dylaj = map(anxdata, 0, 1800, 0, 100);
-        sx.Step(false);
-        if (dylaj < 1) dylaj = 1;
-        delayMicroseconds(dylaj * 10);
-        //vTaskDelay(dylaj / portTICK_PERIOD_MS);
-      }
-      else if (anxdata > 2100)
-      {
-        uint32_t dylaj = 100;
-        dylaj -= map(anxdata - 2000, 0, 2095, 0, 100);
-        if (ENDSTOP::flagx)
-        {
-          ENDSTOP::XEnable();
-          sx.Enable();
-        }
-        sx.Step(true);
-        if (dylaj < 1) dylaj = 1;
-        delayMicroseconds(dylaj * 10);
-        //vTaskDelay(dylaj / portTICK_PERIOD_MS);
-      }
-    }
-    if (true)
-    {
-      if (TMRAN.Update()) anxdata = analogRead(anx);
-      if (anxdata < 1700)
-      {
-        uint32_t dylaj = 20000;
-        dylaj = map(anxdata, 0, 1800, 0, 100);
-        sx.Step(false);
-        if (dylaj < 1) dylaj = 1;
-        Serial.println(dylaj);
-        delayMicroseconds(dylaj * 1);
-        //vTaskDelay(dylaj / portTICK_PERIOD_MS);
-      }
-      else if (anxdata > 2100)
-      {
-        uint32_t dylaj = 100;
-        dylaj -= map(anxdata - 2000, 0, 2095, 0, 100);
-        if (ENDSTOP::flagx)
-        {
-          ENDSTOP::XEnable();
-          sx.Enable();
-        }
-        sx.Step(true);
-        if (dylaj < 1) dylaj = 1;
-        Serial.println(dylaj);
-        delayMicroseconds(dylaj * 1);
-        //vTaskDelay(dylaj / portTICK_PERIOD_MS);
-      }
-    }
-  }
-}
+CMD CH('#', '<', '>');
+const driverpins mz = {1, 2, 3, 4, 5, 6, 7, 8};
+const driverpins my = {9, 10, 11, 12, 13, 14, 15, 16};
+const driverpins mx = {17, 18, 19, 20, 21, 22, 23, 24};
+STEPPERMOTOR smx(mx), smy(my), smz(mz);
+motion pohyb;
 
 void setup()
 {
-  xTaskCreatePinnedToCore(Pagman, "main task-pagman", 30000, NULL, 20, &pagman_task, 1);
-  vTaskDelete(NULL);
+  PowerOnSetUp();
+  FAN mfan(12, 1);
+  CH.PridejPrikaz(1, "test", false);
+  CH.PridejPrikaz(2, "enable", false);
+  CH.PridejPrikaz(3, "disable", false);
+  CH.PridejPrikaz(4, "krok", true);
+  CH.PridejPrikaz(5, "nahoru", true);
+  CH.PridejPrikaz(6, "dolu", true);
+  CH.PridejPrikaz(7, "doprava", true);
+  CH.PridejPrikaz(8, "doleva", true);
+  CH.PridejPrikaz(9, "obraz", false);
+  CH.PridejPrikaz(10, "rychlost", true);
+  CH.PridejPrikaz(11, "fan", true);
+  smx.Begin();
+  smy.Begin();
+  smz.Begin();
+  ENDSTOP::psmx = &smx;
+  ENDSTOP::psmy = &smy;
+  ENDSTOP::psmz = &smz;
+  AXES::psmx = &smx;
+  AXES::psmy = &smy;
+  AXES::psmz = &smz;
+  pohyb.size = 256;
+  pohyb.psteps = new uint8_t[pohyb.size];
+  for (int i = 0; i < 64; i++)
+  {
+    pohyb.psteps[i] = 0b01101111;
+    pohyb.psteps[i + 64] = 0b01001111;
+    pohyb.psteps[i + 128] = 0b10101111;
+    pohyb.psteps[i + 192] = 0b10001111;
+  }
+  int navratka = 0, parametr = 0;
+  float rychlost = 0.0;
+  float newspeed = 0.0;
+  unsigned long spd = 10000;
+  while (true)
+  {
+    CH.Update();
+    if (CH.Next(navratka, parametr))
+    {
+      switch (navratka)
+      {
+        case 1: Serial.println("Test: " + String(millis())); break;
+        
+        case 2:
+        ENDSTOP::XEnable();
+        ENDSTOP::YEnable();
+        ENDSTOP::ZEnable();
+        ENDSTOP::ExZEnable();
+        smx.Enable();
+        smy.Enable();
+        break;
+
+        case 3:
+        ENDSTOP::XDisable();
+        ENDSTOP::YDisable();
+        ENDSTOP::ZDisable();
+        ENDSTOP::ExZDisable();
+        smx.Disable();
+        smy.Disable();
+        break;
+
+        case 4:
+        smx.SetStepping(parametr);
+        smy.SetStepping(parametr);
+        smz.SetStepping(parametr);
+        break;
+
+        case 5:
+        {
+          newspeed = rychlost / 0.04;
+          spd = 1000000UL / long(newspeed);
+          switch (smx.GetStepping())
+          {
+            default: break;
+            case 1: spd /= 2; break;
+            case 2: spd /= 4; break;
+            case 3: spd /= 8; break;
+            case 4: spd /= 16; break;
+          }
+          for (int i = 0; i < (parametr * 10); i++)
+          {
+            if (!smy.Step(false)) break;
+            delayMicroseconds(spd);
+          }
+        }
+        break;
+
+        case 6:
+        {
+          newspeed = rychlost / 0.04;
+          spd = 1000000UL / long(newspeed);
+          switch (smy.GetStepping())
+          {
+            default: break;
+            case 1: spd /= 2; break;
+            case 2: spd /= 4; break;
+            case 3: spd /= 8; break;
+            case 4: spd /= 16; break;
+          }
+          for (int i = 0; i < (parametr * 10); i++)
+          {
+            if (!smy.Step(true)) break;
+            delayMicroseconds(spd);
+          }
+        }
+        break;
+
+        case 7:
+        {
+          newspeed = rychlost / 0.04;
+          spd = 1000000UL / long(newspeed);
+          switch (smx.GetStepping())
+          {
+            default: break;
+            case 1: spd /= 2; break;
+            case 2: spd /= 4; break;
+            case 3: spd /= 8; break;
+            case 4: spd /= 16; break;
+          }
+          for (int i = 0; i < (parametr * 10); i++)
+          {
+            if (!smx.Step(false)) break;
+            delayMicroseconds(spd);
+          }
+        }
+        break;
+
+        case 8:
+        {
+          newspeed = rychlost / 0.04;
+          spd = 1000000UL / long(newspeed);
+          switch (smx.GetStepping())
+          {
+            default: break;
+            case 1: spd /= 2; break;
+            case 2: spd /= 4; break;
+            case 3: spd /= 8; break;
+            case 4: spd /= 16; break;
+          }
+          for (int i = 0; i < (parametr * 10); i++)
+          {
+            if (!smx.Step(true)) break;
+            delayMicroseconds(spd);
+          }
+        }
+        break;
+
+        case 9:
+        AXES::speed = rychlost;
+        if (AXES::ExeMotion(pohyb, true)) Serial.println("ExeMotion succes");
+        else Serial.println("ExeMotion failed");
+        break;
+
+        case 10:
+        rychlost = float(parametr);
+        Serial.println("rychlost: " + String(rychlost));
+        if (rychlost > 100.0) rychlost = 50.0;
+        else if (rychlost < 1) rychlost = 1.0;
+        break;
+
+        case 11:
+        mfan.Set(navratka);
+        break;
+      }
+    }
+    else vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
 }
 
 void loop()
