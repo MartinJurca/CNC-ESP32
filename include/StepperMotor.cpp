@@ -84,7 +84,7 @@ class STEPPERMOTOR
         return true;
     }
 
-    uint8_t GetStepping()
+    uint8_t IRAM_ATTR GetStepping()
     {
         return stepping;
     }

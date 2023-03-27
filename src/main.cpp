@@ -21,7 +21,7 @@ const driverpins mz = {1, 2, 3, 4, 5, 6, 7, 8};
 const driverpins mx = {9, 10, 11, 12, 13, 14, 15, 16};
 const driverpins my = {17, 18, 19, 20, 21, 22, 23, 24};
 STEPPERMOTOR smx(mx), smy(my), smz(mz);
-motion pohyb;
+motion pohyb1, pohyb2, pohyb3, pohyb4;
 
 void setup()
 {
@@ -38,6 +38,8 @@ void setup()
   CH.PridejPrikaz(9, "obraz", false);
   CH.PridejPrikaz(10, "rychlost", true);
   CH.PridejPrikaz(11, "fan", true);
+  CH.PridejPrikaz(12, "treshold", true);
+  CH.PridejPrikaz(13, "acc", true);
   smx.Begin();
   smy.Begin();
   smz.Begin();
@@ -47,14 +49,21 @@ void setup()
   AXES::psmx = &smx;
   AXES::psmy = &smy;
   AXES::psmz = &smz;
-  pohyb.size = 256;
-  pohyb.psteps = new uint8_t[pohyb.size];
-  for (int i = 0; i < 64; i++)
+  int vel = 64;
+  pohyb1.size = vel;
+  pohyb1.psteps = new uint8_t[pohyb1.size];
+  pohyb2.size = vel;
+  pohyb2.psteps = new uint8_t[pohyb2.size];
+  pohyb3.size = vel;
+  pohyb3.psteps = new uint8_t[pohyb3.size];
+  pohyb4.size = vel;
+  pohyb4.psteps = new uint8_t[pohyb4.size];
+  for (int i = 0; i < vel; i++)
   {
-    pohyb.psteps[i] = 0b01011111;
-    pohyb.psteps[i + 64] = 0b01111111;
-    pohyb.psteps[i + 128] = 0b10011111;
-    pohyb.psteps[i + 192] = 0b10111111;
+    pohyb1.psteps[i] = 0b01011111;
+    pohyb2.psteps[i] = 0b01111111;
+    pohyb3.psteps[i] = 0b10011111;
+    pohyb4.psteps[i] = 0b10111111;
   }
   int navratka = 0, parametr = 0;
   float rychlost = 0.0;
@@ -178,19 +187,48 @@ void setup()
 
         case 9:
         AXES::speed = rychlost;
-        if (AXES::ExeMotion(pohyb, true)) Serial.println("ExeMotion succes");
-        else Serial.println("ExeMotion failed");
+        if (!AXES::ExeMotion(pohyb1, false))
+        {
+          Serial.println("ExeMotion failed");
+          break;
+        }
+        if (!AXES::ExeMotion(pohyb2, false))
+        {
+          Serial.println("ExeMotion failed");
+          break;
+        }
+        if (!AXES::ExeMotion(pohyb3, false))
+        {
+          Serial.println("ExeMotion failed");
+          break;
+        }
+        if (!AXES::ExeMotion(pohyb4, false))
+        {
+          Serial.println("ExeMotion failed");
+          break;
+        }
+        Serial.println("ExeMotion succes");
         break;
 
         case 10:
         rychlost = float(parametr);
         Serial.println("rychlost: " + String(rychlost));
-        if (rychlost > 100.0) rychlost = 50.0;
+        if (rychlost > 200.0) rychlost = 200.0;
         else if (rychlost < 1) rychlost = 1.0;
         break;
 
         case 11:
         mfan.Set(navratka);
+        break;
+
+        case 12:
+        AXES::acctreshold = parametr;
+        Serial.println("acctreshold: " + String(AXES::acctreshold));
+        break;
+
+        case 13:
+        AXES::acceleration = parametr;
+        Serial.println("acceleration: " + String(AXES::acceleration));
         break;
       }
     }

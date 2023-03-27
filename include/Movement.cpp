@@ -84,9 +84,9 @@ struct motion
 namespace AXES
 {
     const uint8_t x = 0, y = 1, z = 2;
-    const uint8_t acceleration = 10;
-    const uint8_t acctreshold = 50;
-    const float xymaxspeed = 10, zmaxspeed = 50;
+    uint8_t acceleration = 2;
+    uint16_t acctreshold = 1000;
+    float xymaxspeed = 100.0, zmaxspeed = 10.0;
     const uint16_t maxlenght[3] = {5000, 5000, 10000};
     int16_t realpoz[3] = {0, 0, 0};
     int16_t artpoz[3] = {0, 0, 0};
@@ -119,13 +119,13 @@ namespace AXES
             case 0b10110000: return 8; // doleva-nahoru
             case 0b11000000: return 9; // Z-nahoru
             case 0b11010000: return 10; // Z-dolů
-            case 0b11100000: return 11;
-            case 0b11110000: return 12;
+            case 0b11100000: return 11; // Z-nahoru bez čekání
+            case 0b11110000: return 12; // Z-dolů bez čekání
             default: return 0;
         }
     }
 
-    uint8_t IRAM_ATTR GetMultiplier(uint8_t axis)
+    inline uint8_t GetMultiplier(uint8_t axis)
     {
         switch (axis)
         {
@@ -157,10 +157,10 @@ namespace AXES
 
     unsigned long IRAM_ATTR GetDelayMicros(uint8_t axis, float spd)
     {
-        const uint8_t srwritetime = 24;
+        const uint8_t srwritetime = 24; // @10MHz
         const float mmperstep_trap = 0.04;
         const float mmperstep_met = 0.00625;
-        unsigned long del = 0;
+        long del = 0;
         switch (axis)
         {
             case 0:
@@ -175,7 +175,7 @@ namespace AXES
                 case 3: del /= 8; break;
                 case 4: del /= 16; break;
             }
-            if ((del - srwritetime) < srwritetime) return 0;
+            if ((del - srwritetime) < srwritetime) return 1;
             else return del - srwritetime;
 
             case 1:
@@ -190,7 +190,7 @@ namespace AXES
                 case 3: del /= 8; break;
                 case 4: del /= 16; break;
             }
-            if ((del - srwritetime) < srwritetime) return 0;
+            if ((del - srwritetime) < srwritetime) return 1;
             else return del - srwritetime;
 
             case 2:
@@ -205,10 +205,31 @@ namespace AXES
                 case 3: del /= 8; break;
                 case 4: del /= 16; break;
             }
-            if ((del - srwritetime) < srwritetime) return 0;
+            if ((del - srwritetime) < srwritetime) return 1;
             else return del - srwritetime;
         }
         return 100000UL;
+    }
+
+    inline void AccDelay(bool &accenable, unsigned long &xydelh, unsigned long &xydelay, uint16_t &acc)
+    {
+        if (accenable)
+        {
+            //acc /= GetMultiplier(x);
+            //if (acc == 0) acc = 1;
+            if (xydelh <= xydelay)
+            {
+                accenable = false;
+                delayMicroseconds(xydelay);
+            }
+            else
+            {
+                delayMicroseconds(xydelh);
+                if (acc >= xydelh) xydelh = 0;
+                else xydelh -= acc;
+            }
+        }
+        else delayMicroseconds(xydelay);
     }
 
     bool ExeMotion(const motion &motion_data, bool noacc = true)
@@ -350,6 +371,164 @@ namespace AXES
 
                         case 11: break;
                         case 12: break;
+                        default: return false;
+                    }
+                }
+            }
+            return true;
+        }
+        else
+        {
+            unsigned long xydelay = GetDelayMicros(0, speed);
+            unsigned long zdelay = GetDelayMicros(2, speedz);
+            unsigned long xydelh = acctreshold;
+            bool accenable;
+            accenable = xydelay < acctreshold;
+            Serial.println("accenable: " + String(accenable));
+            uint8_t tst1, tst2;
+            uint16_t acc = acceleration;
+            tst1 = GetMultiplier(x);
+            tst2 = GetMultiplier(y);
+            if (tst1 != tst2) return false;
+            acc *= tst1;
+            for (uint16_t field = 0; field < motion_data.size; field++)
+            {
+                uint8_t cycles = GetCount(motion_data.psteps[field]);
+                uint8_t direction = GetDirection(motion_data.psteps[field]);
+                uint8_t mtp = 1;
+                switch (direction)
+                {
+                    case 1: mtp = GetMultiplier(y); break;
+
+                    case 2:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 3: mtp = GetMultiplier(x); break;
+
+                    case 4:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 5: mtp = GetMultiplier(y);
+
+                    case 6:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 7: mtp = GetMultiplier(x);
+
+                    case 8:
+                    tst1 = GetMultiplier(x), tst2 = GetMultiplier(y);
+                    if (tst1 != tst2) return false;
+                    mtp = tst1;
+                    break;
+
+                    case 9: mtp = GetMultiplier(z); break;
+
+                    case 10: mtp = GetMultiplier(z); break;
+
+                    case 11: mtp = GetMultiplier(z); break;
+
+                    case 12: mtp = GetMultiplier(z); break;
+                    
+                    default: return false;
+                }
+                for (uint16_t c = 0; c < (cycles * mtp); c++)
+                {
+                    switch (direction)
+                    {
+                        case 1:
+                        if (!psmy->Step(true)) return false;
+                        realpoz[y]++, artpoz[y]++;
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 2:
+                        if (!psmx->MaskStep(true)) return false;
+                        if (!psmy->MaskStep(true)) return false;
+                        SrWrite();
+                        realpoz[x]++, artpoz[x]++;
+                        realpoz[y]++, artpoz[y]++;
+                        FinishMaskStep(*psmx, *psmy);
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 3:
+                        if (!psmx->Step(true)) return false;
+                        realpoz[x]++, artpoz[x]++;
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 4:
+                        if (!psmx->MaskStep(true)) return false;
+                        if (!psmy->MaskStep(false)) return false;
+                        SrWrite();
+                        realpoz[x]++, artpoz[x]++;
+                        realpoz[y]--, artpoz[y]--;
+                        FinishMaskStep(*psmx, *psmy);
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 5:
+                        if (!psmy->Step(false)) return false;
+                        realpoz[y]--, artpoz[y]--;
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 6:
+                        if (!psmx->MaskStep(false)) return false;
+                        if (!psmy->MaskStep(false)) return false;
+                        SrWrite();
+                        realpoz[x]--, artpoz[x]--;
+                        realpoz[y]--, artpoz[y]--;
+                        FinishMaskStep(*psmx, *psmy);
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 7:
+                        if (!psmx->Step(false)) return false;
+                        realpoz[x]--, artpoz[x]--;
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 8:
+                        if (!psmx->MaskStep(false)) return false;
+                        if (!psmy->MaskStep(true)) return false;
+                        SrWrite();
+                        realpoz[x]--, artpoz[x]--;
+                        realpoz[y]++, artpoz[y]++;
+                        FinishMaskStep(*psmx, *psmy);
+                        AccDelay(accenable, xydelh, xydelay, acc);
+                        break;
+
+                        case 9:
+                        if (!psmz->Step(false)) return false;
+                        realpoz[z]++, artpoz[z]++;
+                        delayMicroseconds(zdelay);
+                        break;
+
+                        case 10:
+                        if (!psmz->Step(true)) return false;
+                        realpoz[z]--, artpoz[z]--;
+                        delayMicroseconds(zdelay);
+                        break;
+
+                        case 11:
+                        if (!psmz->Step(false)) return false;
+                        realpoz[z]++, artpoz[z]++;
+                        break;
+
+                        case 12:
+                        if (!psmz->Step(true)) return false;
+                        realpoz[z]--, artpoz[z]--;
+                        break;
                         default: return false;
                     }
                 }
