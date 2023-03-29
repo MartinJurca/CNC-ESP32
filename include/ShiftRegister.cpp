@@ -4,10 +4,10 @@
 #ifndef _SHIFT_REGISTER_
 #define _SHIFT_REGISTER_
 
-#define srclk 27
-#define srser 32
-#define srregclk 33
-#define srfreq 10000000
+const uint8_t srclk = 27;
+const uint8_t srser = 32;
+const uint8_t srregclk = 33;
+const uint32_t srfreq = 10000000;
 
 void SrBegin();
 void IRAM_ATTR SrWrite();

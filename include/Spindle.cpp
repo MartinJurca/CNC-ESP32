@@ -1,11 +1,35 @@
-#include<Arduino.h>
-#include<HardwareSerial.h>
+#include <Arduino.h>
+#include <HardwareSerial.h>
+#include "StepperMotor.cpp"
 
 #ifndef _SPINDLE_
 #define _SPINDLE_
 
 namespace SPINDLE
 {
+    const uint8_t pin = 23;
+    bool running = false;
+    STEPPERMOTOR* psmx = nullptr;
+    STEPPERMOTOR* psmy = nullptr;
+    STEPPERMOTOR* psmz = nullptr;
+
+    bool Start()
+    {
+        if (((psmx == nullptr) || (psmy == nullptr)) || psmz == nullptr) return false;
+        if ((psmx->IsEnabled() && psmy->IsEnabled()) && psmz->IsEnabled()) return false;
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, HIGH);
+        running = true;
+        return true;
+    }
+
+    void Stop()
+    {
+        digitalWrite(pin, LOW);
+        running = false;
+    }
+
+    /*
     const uint8_t pin = 23;
     const uint8_t errorcount = 16;
     const int maxrpm = 9400;
@@ -14,7 +38,7 @@ namespace SPINDLE
     bool taskisrunning = false;
     int rpm = 0;
     TaskHandle_t _rpm_task;
-    //HardwareSerial InSerial(1);
+    HardwareSerial InSerial(1);
     void ErrorRoutine();
     void _RpmTask (void * pvParameters);
     void Start();
@@ -27,18 +51,18 @@ namespace SPINDLE
         pinMode(pin, OUTPUT);
         digitalWrite(pin, HIGH);
         vTaskDelay(500 / portTICK_PERIOD_MS);
-        //InSerial.begin(115200, SERIAL_8N1, 16, 17);
-        //InSerial.setTimeout(50);
+        InSerial.begin(115200, SERIAL_8N1, 16, 17);
+        InSerial.setTimeout(50);
         while (true)
         {
-            /*if (InSerial.available())
+            if (InSerial.available())
             {
                 String datain = "70" //InSerial.readString();
                 int number = datain.toInt();
                 number *= 2;
                 number *= 60;
                 rpm = number;
-            }*/
+            }
             c = float(rpm);
             b = float(maxrpm) * borderlinerpm;
             if (c < b) count++;
@@ -71,6 +95,7 @@ namespace SPINDLE
         taskisrunning = false;
         rpm = 0;
     }
+    */
 }
 
 #endif

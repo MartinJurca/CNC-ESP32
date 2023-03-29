@@ -20,7 +20,8 @@ class CMD
     vratitcislo = LinkedList<int>();
     maparametr = LinkedList<bool>();
     parametry = LinkedList<int>();
-    PridejPrikaz(9999, "x1y2z3", false);
+    PridejPrikaz(9999, "ˇ", false);
+    Serial.setTimeout(1);
   };
   void Update ()
   {

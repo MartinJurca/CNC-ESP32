@@ -15,13 +15,19 @@ struct motion
         psteps = nullptr;
     }
 
-    motion(const motion &mot_)
+    motion(const motion& mot_)
     {
         size = mot_.size;
         psteps = mot_.psteps;
     }
 
-    motion operator+(const motion &mot_)
+    void Clear()
+    {
+        size = 0;
+        if (psteps != nullptr) delete[] psteps, psteps = nullptr;
+    }
+
+    motion operator+(const motion& mot_)
     {
         motion newmotion;
         newmotion.size = size + mot_.size;
@@ -42,30 +48,33 @@ struct motion
         return newmotion;
     }
 
-    void operator+=(const motion &mot_)
+    /*void operator+=(const motion& mot_)
     {
-        size = size + mot_.size;
-        if (size == 0)
+        if ((size == 0) && (mot_.size == 0)) return;
+        motion newmotion;
+        newmotion.size = size + mot_.size;
+        newmotion.psteps = new uint8_t[newmotion.size];
+        if (size != 0) for (uint16_t i = 0; i < size; i++)
         {
-            psteps = nullptr;
-            return;
+            newmotion.psteps[i] = psteps[i];
         }
+        if (mot_.size != 0) for (uint16_t i = size; i < newmotion.size; i++)
+        {
+            newmotion.psteps[i] = mot_.psteps[i];
+        }
+        if (psteps != nullptr) delete[] psteps, psteps = nullptr;
+        size = newmotion.size;
         psteps = new uint8_t[size];
         for (uint16_t i = 0; i < size; i++)
         {
-            psteps[i] = psteps[i];
+            psteps[i] = newmotion.psteps[i];
         }
-        for (uint16_t i = size; i < (size + mot_.size); i++)
-        {
-            psteps[i] = mot_.psteps[i - size];
-        }
-        return;
-    }
+    }*/
 
-    void operator=(const motion &mot_)
+    void operator=(const motion& mot_)
     {
         size = mot_.size;
-        if (psteps) delete [] psteps;
+        if (psteps != nullptr) delete[] psteps, psteps = nullptr;
         if (size == 0) return;
         psteps = new uint8_t[size];
         for (uint16_t i = 0; i < size; i++)
@@ -74,11 +83,26 @@ struct motion
         }
     }
 
+    void InvertDirection()
+    {
+        if ((size == 0) || (psteps == nullptr)) return;
+        motion inv;
+        inv.size = size;
+        inv.psteps = new uint8_t[inv.size];
+        for (uint16_t i = 0; i < size; i++) inv.psteps[i] = psteps[i];
+        uint16_t i1 = 0, i2 = size - 1;
+        while (i1 < size)
+        {
+            psteps[i1] = inv.psteps[i2];
+            i1++, i2--;
+        }
+    }
+
     ~motion()
     {
-        if (psteps) delete [] psteps;
-        psteps = nullptr;
+        if (psteps != nullptr) delete[] psteps;
     }
+
 };
 
 namespace AXES
@@ -86,11 +110,11 @@ namespace AXES
     const uint8_t x = 0, y = 1, z = 2;
     uint8_t acceleration = 2;
     uint16_t acctreshold = 1000;
-    float xymaxspeed = 100.0, zmaxspeed = 10.0;
-    const uint16_t maxlenght[3] = {5000, 5000, 10000};
+    float xymaxspeed = 100.0, zmaxspeed = 5.0;
+    const uint16_t maxlenght[3] = {5000, 5000, 5000};
     int16_t realpoz[3] = {0, 0, 0};
     int16_t artpoz[3] = {0, 0, 0};
-    float speed = 1, speedz = 1;
+    float xyspeed = 1, zspeed = 1;
     bool iscalibrated[3] = {false, false, false};
     bool hasfailed = false;
     bool enabled = true;
@@ -232,17 +256,19 @@ namespace AXES
         else delayMicroseconds(xydelay);
     }
 
-    bool ExeMotion(const motion &motion_data, bool noacc = true)
+    bool ExeMotion(const motion &motion_data, bool acc = false)
     {
         if (psmx == nullptr) return false;
         else if (psmy == nullptr) return false;
         else if (psmz == nullptr) return false;
         if (motion_data.size == 0) return false;
         if (!HardwareCheck()) return false;
-        if (noacc)
+        if (xyspeed > xymaxspeed) xyspeed = xymaxspeed;
+        if (zspeed > zmaxspeed) zspeed = zmaxspeed;
+        if (!acc)
         {
-            unsigned long xydelay = GetDelayMicros(0, speed);
-            unsigned long zdelay = GetDelayMicros(2, speedz);
+            unsigned long xydelay = GetDelayMicros(0, xyspeed);
+            unsigned long zdelay = GetDelayMicros(2, zspeed);
             for (uint16_t field = 0; field < motion_data.size; field++)
             {
                 uint8_t cycles = GetCount(motion_data.psteps[field]);
@@ -286,6 +312,10 @@ namespace AXES
                     case 9: mtp = GetMultiplier(z); break;
 
                     case 10: mtp = GetMultiplier(z); break;
+
+                    case 11: mtp = GetMultiplier(z); break;
+
+                    case 12: mtp = GetMultiplier(z); break;
                     
                     default: break;
                 }
@@ -369,8 +399,15 @@ namespace AXES
                         delayMicroseconds(zdelay);
                         break;
 
-                        case 11: break;
-                        case 12: break;
+                        case 11:
+                        if (!psmz->Step(false)) return false;
+                        realpoz[z]++, artpoz[z]++;
+                        break;
+
+                        case 12:
+                        if (!psmz->Step(true)) return false;
+                        realpoz[z]--, artpoz[z]--;
+                        break;
                         default: return false;
                     }
                 }
@@ -379,12 +416,11 @@ namespace AXES
         }
         else
         {
-            unsigned long xydelay = GetDelayMicros(0, speed);
-            unsigned long zdelay = GetDelayMicros(2, speedz);
+            unsigned long xydelay = GetDelayMicros(0, xyspeed);
+            unsigned long zdelay = GetDelayMicros(2, zspeed);
             unsigned long xydelh = acctreshold;
             bool accenable;
             accenable = xydelay < acctreshold;
-            Serial.println("accenable: " + String(accenable));
             uint8_t tst1, tst2;
             uint16_t acc = acceleration;
             tst1 = GetMultiplier(x);

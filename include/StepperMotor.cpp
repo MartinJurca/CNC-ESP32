@@ -149,6 +149,11 @@ class STEPPERMOTOR
         SrWrite();
         return true;
     }
+
+    bool IsEnabled()
+    {
+        return enabled;
+    }
 };
 
 #endif
