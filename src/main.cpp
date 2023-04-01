@@ -13,6 +13,7 @@
 #include "Spindle.cpp"
 #include "Movement.cpp"
 #include "Timer.cpp"
+#include "Vector.h"
 
 void _FeedTask(void* pvParameters);
 void _XHomingTask(void* pvParameters);
@@ -29,6 +30,7 @@ bool feedread = false;
 bool hold = false;
 LinkedList<int> feeder = LinkedList<int>();
 LinkedList<int> parameter = LinkedList<int>();
+motion savedmotion;
 
 void setup()
 {
@@ -133,6 +135,12 @@ void loop()
           SMZ.Enable();
           break;
 
+          case 3:
+          SMX.Enable();
+          SMY.Enable();
+          SMZ.Enable();
+          break;
+
           default: Serial.println("[invalid_argument]"); break;
         }
       }
@@ -151,6 +159,12 @@ void loop()
           break;
 
           case 2:
+          SMZ.Disable();
+          break;
+
+          case 3:
+          SMX.Disable();
+          SMY.Disable();
           SMZ.Disable();
           break;
 
@@ -176,6 +190,13 @@ void loop()
           ENDSTOP::ExZEnable();
           break;
 
+          case 3:
+          ENDSTOP::XEnable();
+          ENDSTOP::YEnable();
+          ENDSTOP::ZEnable();
+          ENDSTOP::ExZEnable();
+          break;
+
           default: Serial.println("[invalid_argument]");
         }
       }
@@ -194,6 +215,13 @@ void loop()
           break;
 
           case 2:
+          ENDSTOP::ZDisable();
+          ENDSTOP::ExZDisable();
+          break;
+
+          case 3:
+          ENDSTOP::XDisable();
+          ENDSTOP::YDisable();
           ENDSTOP::ZDisable();
           ENDSTOP::ExZDisable();
           break;
@@ -233,11 +261,81 @@ void loop()
       }
       break;
 
-      case 20: break;
-
-      case 21: //začít přenos dat -> implementovat
+      case 20: //vykonat uložený pohyb
       {
-        //
+        if (AXES::ExeMotion(savedmotion, accenabled)) Serial.println("[done]");
+        else Serial.println("[failed]");
+      }
+      break;
+
+      case 21: //začít přenos dat
+      {
+        bool exitflag = false;
+        hold = true;
+        vTaskDelay(2);
+        while (Serial.available()) Serial.read();
+        Vector<unsigned char> vdatain;
+        TIMER TMRTO(2000);
+        TMRTO.Update();
+        Serial.println("<ready>");
+        while (true)
+        {
+          if (TMRTO.Update())
+          {
+            Serial.println("[timeout]");
+            exitflag = true;
+            break;
+          }
+          if (Serial.available()) if (Serial.read() == '<') break;
+        }
+        if (exitflag) break;
+        TMRTO.Start();
+        TMRTO.Update();
+        while (true)
+        {
+          if (TMRTO.Update())
+          {
+            Serial.println("[timeout]");
+            exitflag = true;
+            break;
+          }
+          if (Serial.available())
+          {
+            unsigned char datain = Serial.read();
+            if (datain == '>')
+            {
+              Serial.println("[done]");
+            }
+            vdatain.PushBack(datain);
+          }
+        }
+        if (exitflag) break;
+        for (uint16_t i = 0; i < vdatain.Size(); i++)
+        {
+          if (vdatain[i] < 40)
+          {
+            Serial.println("[invalid_bytes]");
+            exitflag = true;
+            break;
+          }
+        }
+        if (exitflag) break;
+        Serial.print("[");
+        Serial.print("checksum:");
+        Serial.print(String(vdatain.Size()));
+        Serial.println("]");
+        savedmotion.Clear();
+        savedmotion.size = vdatain.Size();
+        savedmotion.psteps = new uint8_t[savedmotion.size];
+        if (savedmotion.psteps == nullptr)
+        {
+          Serial.println("[alocation_failed]");
+          break;
+        }
+        for (uint16_t i = 0; i < vdatain.Size(); i++)
+        {
+          savedmotion.psteps[i] = vdatain[i];
+        }
       }
       break;
 
