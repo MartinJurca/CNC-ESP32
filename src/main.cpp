@@ -54,6 +54,7 @@ void setup()
   AXES::acceleration = 3;
   AXES::acctreshold = 1000;
   AXES::xymaxspeed = 100.0;
+  AXES::zmaxspeed = 5.0;
   xTaskCreatePinnedToCore(_FeedTask, "Feed_task", 4096, nullptr, 1, nullptr, 0);
 }
 
@@ -550,6 +551,101 @@ void loop()
         }
       }
       break;
+
+      case 6: //nahoru
+      {
+        if (parameter[0] < 1)
+        {
+          Serial.println("[invalid_argument]");
+          break;
+        }
+        motion nahoru;
+        nahoru.size = parameter[0];
+        nahoru.psteps = new uint8_t[nahoru.size];
+        for (int i = 0; i < nahoru.size; i++)
+        {
+          nahoru.psteps[i] = 0b11001111;
+        }
+        if (AXES::ExeMotion(nahoru, accenabled))
+        {
+          Serial.println("[ExeMotion_succes]");
+        }
+        else Serial.println("[ExeMotion_failed]");
+      }
+      break;
+
+      case 7: //dolů
+      {
+        if (parameter[0] < 1)
+        {
+          Serial.println("[invalid_argument]");
+          break;
+        }
+        motion nahoru;
+        nahoru.size = parameter[0];
+        nahoru.psteps = new uint8_t[nahoru.size];
+        for (int i = 0; i < nahoru.size; i++)
+        {
+          nahoru.psteps[i] = 0b11011111;
+        }
+        if (AXES::ExeMotion(nahoru, accenabled))
+        {
+          Serial.println("[ExeMotion_succes]");
+        }
+        else Serial.println("[ExeMotion_failed]");
+      }
+      break;
+
+      case 8: //drážka
+      {
+        int sirka = 8; //0,64 * šířka
+        int delka = 16; //0,64 * délka
+        int hloubka = 100; //0,1 * hloubka
+        motion a, b, doprava, doleva, dolu;
+        doprava.size = 1;
+        doprava.psteps = new uint8_t[doprava.size];
+        doprava.psteps[0] = 0b01101111;
+        doleva.size = 1;
+        doleva.psteps = new uint8_t[doleva.size];
+        doleva.psteps[0] = 0b10101111;
+        dolu.size = 1;
+        dolu.psteps = new uint8_t[dolu.size];
+        dolu.psteps[0] = 0b11011111;
+        a.size = delka;
+        a.psteps = new uint8_t[a.size];
+        for (int i = 0; i < a.size; i++) a.psteps[i] = 0b01001111;
+        b.size = delka;
+        b.psteps = new uint8_t[b.size];
+        for (int i = 0; i < b.size; i++) b.psteps[i] = 0b10001111;
+        //
+        for (int z = 0; z < hloubka; z++)
+        {
+          if (!AXES::ExeMotion(dolu, accenabled))
+          {
+            Serial.println("failed...");
+            break;
+          }
+          for (int y = 0; y < sirka; y++)
+          {
+            if (!AXES::ExeMotion(a, accenabled))
+            {
+              Serial.println("failed...");
+              break;
+            }
+            if (!AXES::ExeMotion(b, accenabled))
+            {
+              Serial.println("failed...");
+              break;
+            }
+            AXES::ExeMotion(doprava, accenabled);
+          }
+          for (int u = 0; u < sirka; u++)
+          {
+            AXES::ExeMotion(doleva, accenabled);
+          }
+        }
+      }
+      break;
     }
     if (feeder.size() != 0) feeder.shift();
     if (parameter.size() != 0) parameter.shift();
@@ -567,6 +663,9 @@ void _FeedTask(void* pvParameters)
   FEED.PridejPrikaz(3, "restart", false);
   FEED.PridejPrikaz(4, "?", false);
   FEED.PridejPrikaz(5, "~", false);
+  FEED.PridejPrikaz(6, "nahoru", true);
+  FEED.PridejPrikaz(7, "dolu", true);
+  FEED.PridejPrikaz(8, "pohyb", false);
   //
   FEED.PridejPrikaz(10, "a", true);
   FEED.PridejPrikaz(11, "b", true);

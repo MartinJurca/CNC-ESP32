@@ -15,8 +15,8 @@ namespace SPINDLE
 
     bool Start()
     {
-        if (((psmx == nullptr) || (psmy == nullptr)) || psmz == nullptr) return false;
-        if ((psmx->IsEnabled() && psmy->IsEnabled()) && psmz->IsEnabled()) return false;
+        //if (((psmx == nullptr) || (psmy == nullptr)) || psmz == nullptr) return false;
+        //if ((psmx->IsEnabled() && psmy->IsEnabled()) && psmz->IsEnabled()) return false;
         pinMode(pin, OUTPUT);
         digitalWrite(pin, HIGH);
         running = true;
