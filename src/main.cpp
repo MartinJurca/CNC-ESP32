@@ -601,6 +601,7 @@ void loop()
         int sirka = 8; //0,64 * šířka
         int delka = 16; //0,64 * délka
         int hloubka = 100; //0,1 * hloubka
+        int zaber = 4; //0,1 * hloubka
         motion a, b, doprava, doleva, dolu;
         doprava.size = 1;
         doprava.psteps = new uint8_t[doprava.size];
@@ -620,10 +621,13 @@ void loop()
         //
         for (int z = 0; z < hloubka; z++)
         {
-          if (!AXES::ExeMotion(dolu, accenabled))
+          for (int f = 0; f < zaber; f++)
           {
-            Serial.println("failed...");
-            break;
+            if (!AXES::ExeMotion(dolu, accenabled))
+            {
+              Serial.println("failed...");
+              break;
+            }
           }
           for (int y = 0; y < sirka; y++)
           {
@@ -646,6 +650,12 @@ void loop()
         }
       }
       break;
+
+      case 9: //začít přenos dat bez režie -> implementovat
+      {
+        //
+      }
+      break;
     }
     if (feeder.size() != 0) feeder.shift();
     if (parameter.size() != 0) parameter.shift();
@@ -666,6 +676,7 @@ void _FeedTask(void* pvParameters)
   FEED.PridejPrikaz(6, "nahoru", true);
   FEED.PridejPrikaz(7, "dolu", true);
   FEED.PridejPrikaz(8, "pohyb", false);
+  FEED.PridejPrikaz(9, "prenos", false);
   //
   FEED.PridejPrikaz(10, "a", true);
   FEED.PridejPrikaz(11, "b", true);
