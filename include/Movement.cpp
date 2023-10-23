@@ -431,6 +431,7 @@ namespace AXES
             {
                 uint8_t cycles = GetCount(motion_data.psteps[field]);
                 uint8_t direction = GetDirection(motion_data.psteps[field]);
+                if (direction > 8) Serial.println("Vertical step!");
                 uint8_t mtp = 1;
                 switch (direction)
                 {
