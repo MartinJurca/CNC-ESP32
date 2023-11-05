@@ -1,3 +1,53 @@
+//
+//#define _PIPELINE_DIVIDER_DEBUG_
+//
+#include <Arduino.h>
+#include "ShiftRegister.cpp"
+#include "StepperMotor.cpp"
+#include "COMMAND_HANDLER.cpp"
+#include "CommandHandlerSerial2.cpp"
+#include "Fan.cpp"
+#include "Spindle.cpp"
+#include "Movement.cpp"
+#include "Timer.cpp"
+#include "Vector.h"
+#include "DataTransmition.cpp"
+#include "PipelineDivider.cpp"
+
+void setup()
+{
+  DataTransmition::Begin();
+  PipelineDivider::Begin();
+  SrBegin();
+  //while (true) delay(10);
+}
+
+void loop()
+{
+  using namespace PipelineDivider;
+  if (CommandPipeline->Available() != 0)
+  {
+    while (CommandPipeline->Available() > 0)
+    {
+      int com = 0;
+      long par = 0;
+      CommandPipeline->Read(com, par);
+      Serial.println("C|" + String(com) + String(":") + String(par));
+    }
+  }
+  if (MotionPipeline->Available() != 0)
+  {
+    while (MotionPipeline->Available() > 0)
+    {
+      int com = 0;
+      long par = 0;
+      MotionPipeline->Read(com, par);
+      Serial.println("M|" + String(com) + String(":") + String(par));
+    }
+  }
+}
+
+#ifdef _OLD_
 #include <Arduino.h>
 #include <esp_task_wdt.h>
 #include "soc/rtc_wdt.h"
@@ -1377,3 +1427,4 @@ void PowerOnSetUp()
   pinMode(ENDSTOP::expinz, INPUT_PULLUP);
 }
 */
+#endif

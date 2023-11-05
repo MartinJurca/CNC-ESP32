@@ -1,9 +1,13 @@
+#include <Arduino.h>
+#include "StepperMotor.cpp"
+
+#ifdef _OLD_
 #include<Arduino.h>
 #include "StepperMotor.cpp"
 #include "EndStop.cpp"
 
-#ifndef _MOVEMENT_
-#define _MOVEMENT_
+//#ifndef _MOVEMENT_
+//#define _MOVEMENT_
 
 struct motion
 {
@@ -575,4 +579,5 @@ namespace AXES
     }
 }
 
+//#endif
 #endif

@@ -8,25 +8,16 @@
 namespace SPINDLE
 {
     const uint8_t pin = 23;
-    bool running = false;
-    STEPPERMOTOR* psmx = nullptr;
-    STEPPERMOTOR* psmy = nullptr;
-    STEPPERMOTOR* psmz = nullptr;
 
     bool Start()
     {
-        //if (((psmx == nullptr) || (psmy == nullptr)) || psmz == nullptr) return false;
-        //if ((psmx->IsEnabled() && psmy->IsEnabled()) && psmz->IsEnabled()) return false;
         pinMode(pin, OUTPUT);
         digitalWrite(pin, HIGH);
-        running = true;
-        return true;
     }
 
     void Stop()
     {
         digitalWrite(pin, LOW);
-        running = false;
     }
 
     /*

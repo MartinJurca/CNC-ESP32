@@ -156,4 +156,9 @@ class STEPPERMOTOR
     }
 };
 
+const driverpins mz = {1, 2, 3, 4, 5, 6, 7, 8};
+const driverpins mx = {9, 10, 11, 12, 13, 14, 15, 16};
+const driverpins my = {17, 18, 19, 20, 21, 22, 23, 24};
+STEPPERMOTOR SMX(mx), SMY(my), SMZ(mz);
+
 #endif

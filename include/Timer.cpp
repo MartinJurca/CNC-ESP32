@@ -14,7 +14,7 @@ class TIMER
     flip = flipflop;
     casstopa = 0;
   }
-  bool Update()
+  bool IRAM_ATTR Update()
   {
     if (flip)
     {
@@ -36,7 +36,7 @@ class TIMER
       else return false;
     }
   }
-  void Start(unsigned long novecasovani = 0)
+  void IRAM_ATTR Start(unsigned long novecasovani = 0)
   {
     if (novecasovani != 0) casovani_ = novecasovani; 
     casstopa = millis();

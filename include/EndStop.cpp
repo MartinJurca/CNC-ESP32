@@ -1,8 +1,9 @@
+#ifdef _OLD_
 #include <Arduino.h>
 #include "StepperMotor.cpp"
 
-#ifndef _END_STOP_
-#define _END_STOP_
+//#ifndef _END_STOP_
+//#define _END_STOP_
 
 namespace ENDSTOP
 {
@@ -164,4 +165,5 @@ namespace ENDSTOP
     }
 }
 
+//#endif
 #endif
