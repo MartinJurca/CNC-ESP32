@@ -80,7 +80,7 @@ namespace DataTransmition
                     else break;
                 }
             }
-            delay(10);
+            vTaskDelay(10 / portTICK_PERIOD_MS);
         }
     }
 }

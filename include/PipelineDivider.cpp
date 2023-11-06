@@ -82,6 +82,13 @@ class Pipeline
     {
         return size;
     }
+
+    ~Pipeline()
+    {
+        if (command != nullptr) delete [] command;
+        if (parameter != nullptr) delete [] parameter;
+    }
+
 };
 
 namespace PipelineDivider
@@ -179,8 +186,7 @@ namespace PipelineDivider
                 }
                 serial1rxdata.clear();
             }
-            rtc_wdt_feed();
-            delay(10);
+            vTaskDelay(10 / portTICK_PERIOD_MS);
         }
     }
 }
