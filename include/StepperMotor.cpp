@@ -76,7 +76,14 @@ class STEPPERMOTOR
     bool SetStepping(uint8_t ms)
     {
         if (ms > 4) return false;
-        stepping = ms;
+        switch (ms)
+        {
+            case 0: stepping = 1; break;
+            case 1: stepping = 2; break;
+            case 2: stepping = 4; break;
+            case 3: stepping = 8; break;
+            case 4: stepping = 16; break;
+        }
         SrMask(pins.ms1, microsteppingtable[ms][0]);
         SrMask(pins.ms2, microsteppingtable[ms][1]);
         SrMask(pins.ms3, microsteppingtable[ms][2]);
@@ -84,7 +91,7 @@ class STEPPERMOTOR
         return true;
     }
 
-    uint8_t IRAM_ATTR GetStepping()
+    inline uint8_t GetStepping()
     {
         return stepping;
     }

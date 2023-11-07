@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "StepperMotor.cpp"
+#include "CommonData.cpp"
 
 class Motion
 {
@@ -30,6 +31,11 @@ class Motion
         memcpy(this->pdelays, motion.pdelays, sizeof(motion.pdelays));
     }
 
+    inline uint16_t Size()
+    {
+        return size;
+    }
+
     void Allocate(const uint16_t size)
     {
         this->size = size;
@@ -51,17 +57,31 @@ class Motion
         pdelays = nullptr;
     }
 
-    void Read(const uint16_t index, uint8_t &step, long &delay)
+    void IRAM_ATTR Read(const uint16_t index, uint8_t &step, long &delay)
     {
         if (index >= size) return;
         step = psteps[index];
         delay = pdelays[index];
     }
 
-    bool Write(const uint16_t index, const uint8_t step, const long delay)
+    bool IRAM_ATTR Write(const uint16_t index, const uint8_t step, const long delay)
     {
         if (index >= size) return false;
         psteps[index] = step;
+        pdelays[index] = delay;
+        return true;
+    }
+
+    bool IRAM_ATTR WriteStep(const uint16_t index, const uint8_t step)
+    {
+        if (index >= size) return false;
+        psteps[index] = step;
+        return true;
+    }
+
+    bool IRAM_ATTR WriteDelay(const uint16_t index, const long delay)
+    {
+        if (index >= size) return false;
         pdelays[index] = delay;
         return true;
     }
@@ -72,6 +92,183 @@ class Motion
         if (pdelays != nullptr) delete [] pdelays;
     }
 };
+
+namespace Movement
+{
+    const bool xf = true, xb = false;
+    const bool yf = true, yb = false;
+    const bool zf = true, zb = false;
+    const uint8_t x = 0, y = 1, z = 2, min = 0, max = 1;
+    bool* stopflag = nullptr;
+
+    inline bool Step(const uint8_t direction)
+    {
+        if ((direction < 48) || (direction > 57)) return false;
+        switch (direction)
+        {
+            default: return false;
+            case 48:
+            {
+                if (SMY.Step(yf)) return true;
+                else return false;
+            }
+            case 49:
+            {
+                if (SMX.Step(xf) && SMY.Step(yf)) return true;
+                else return false;
+            }
+            case 50:
+            {
+                if (SMX.Step(xf)) return true;
+                else return false;
+            }
+            case 51:
+            {
+                if (SMX.Step(xf) && SMY.Step(yb)) return true;
+                else return false;
+            }
+            case 52:
+            {
+                if (SMY.Step(yb)) return true;
+                else return false;
+            }
+            case 53:
+            {
+                if (SMX.Step(xb) && SMY.Step(yb)) return true;
+                else return false;
+            }
+            case 54:
+            {
+                if (SMX.Step(xb)) return true;
+                else return false;
+            }
+            case 55:
+            {
+                if (SMX.Step(xb) && SMY.Step(yf)) return true;
+                else return false;
+            }
+            case 56:
+            {
+                return SMZ.Step(zf);
+            }
+            case 57:
+            {
+                return SMZ.Step(zb);
+            }
+        }
+    }
+
+    bool TestBoundaries(Motion &motion)
+    {
+        using CommonData::boundaries;
+        if (motion.Size() == 0) return true;
+        using CommonData::absoluteposition;
+        int testpos[3] = {absoluteposition[0], absoluteposition[1], absoluteposition[2]};
+        uint8_t step = 0;
+        long nt = 0;
+        for (uint16_t i = 0; i < motion.Size(); i++)
+        {
+            motion.Read(i, step, nt);
+            switch (step)
+            {
+                default: return false;
+                case 48: testpos[y]++; break;
+                case 49: testpos[x]++; testpos[y]++; break;
+                case 50: testpos[x]++; break;
+                case 51: testpos[x]++; testpos[y]--; break;
+                case 52: testpos[y]--; break;
+                case 53: testpos[x]--; testpos[y]--; break;
+                case 54: testpos[x]--; break;
+                case 55: testpos[x]--; testpos[y]++; break;
+                case 56: testpos[z]++; break;
+                case 57: testpos[z]--; break;
+            }
+            if ((testpos[x] < boundaries[x][min]) || (testpos[x] > boundaries[x][max])) return false;
+            if ((testpos[y] < boundaries[y][min]) || (testpos[y] > boundaries[y][max])) return false;
+            if ((testpos[z] < boundaries[z][min]) || (testpos[z] > boundaries[z][max])) return false;
+        }
+        return true;
+    }
+
+    inline void UpdatePosition(const uint8_t step)
+    {
+        using CommonData::absoluteposition;
+        using CommonData::relativeposition;
+        switch (step)
+        {
+            default: break;
+            case 48: absoluteposition[y]++; break;
+            case 49: absoluteposition[x]++; absoluteposition[y]++; break;
+            case 50: absoluteposition[x]++; break;
+            case 51: absoluteposition[x]++; absoluteposition[y]--; break;
+            case 52: absoluteposition[y]--; break;
+            case 53: absoluteposition[x]--; absoluteposition[y]--; break;
+            case 54: absoluteposition[x]--; break;
+            case 55: absoluteposition[x]--; absoluteposition[y]++; break;
+            case 56: absoluteposition[z]++; break;
+            case 57: absoluteposition[z]--; break;
+        }
+        switch (step)
+        {
+            default: break;
+            case 48: relativeposition[y]++; break;
+            case 49: relativeposition[x]++; relativeposition[y]++; break;
+            case 50: relativeposition[x]++; break;
+            case 51: relativeposition[x]++; relativeposition[y]--; break;
+            case 52: relativeposition[y]--; break;
+            case 53: relativeposition[x]--; relativeposition[y]--; break;
+            case 54: relativeposition[x]--; break;
+            case 55: relativeposition[x]--; relativeposition[y]++; break;
+            case 56: relativeposition[z]++; break;
+            case 57: relativeposition[z]--; break;
+        }
+    }
+
+    bool ExeMotion(Motion &motion)
+    {
+        using CommonData::absoluteposition;
+        using CommonData::relativeposition;
+        using CommonData::srwritetime;
+        using CommonData::xymindelay;
+        using CommonData::zmindelay;
+        if (!((SMX.IsEnabled() && SMY.IsEnabled()) && SMZ.IsEnabled())) return false;
+        if (!TestBoundaries(motion)) return false;
+        uint8_t divider[3] = {SMX.GetStepping(), SMY.GetStepping(), SMZ.GetStepping()};
+        if (divider[x] != divider[y]) return false;
+        for (uint16_t i = 0; i < motion.Size(); i++)
+        {
+            if (stopflag != nullptr) if (*stopflag) return false;
+            uint8_t step = 0;
+            long delay = 0;
+            motion.Read(i, step, delay);
+            if ((step == 56) || (step == 57))
+            {
+                delay /= divider[z];
+                delay -= srwritetime;
+                if (delay < (zmindelay / divider[z])) delay = (zmindelay / divider[z]);
+                for (uint8_t s = 0; s < divider[z]; s++)
+                {
+                    if (!Step(step)) return false;
+                    delayMicroseconds(delay);
+                }
+                UpdatePosition(step);
+            }
+            else
+            {
+                delay /= divider[x];
+                delay -= srwritetime;
+                if (delay < (zmindelay / divider[x])) delay = (zmindelay / divider[x]);
+                for (uint8_t s = 0; s < divider[x]; s++)
+                {
+                    if (!Step(step)) return false;
+                    delayMicroseconds(delay);
+                }
+                UpdatePosition(step);
+            }
+        }
+        return true;
+    }
+}
 
 #ifdef _OLD_
 #include<Arduino.h>
