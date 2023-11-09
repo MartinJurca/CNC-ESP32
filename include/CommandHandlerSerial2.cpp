@@ -1,7 +1,9 @@
-#include <Arduino.h>
-#include <LinkedList.h>
 #ifndef _COMMAND_HANDLER_SERIAL2_
 #define _COMMAND_HANDLER_SERIAL2_
+
+#include <Arduino.h>
+#include <LinkedList.h>
+
 class CMDSerial2
 {
   private:

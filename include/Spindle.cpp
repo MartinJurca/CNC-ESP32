@@ -1,11 +1,9 @@
-#include <Arduino.h>
-#include <HardwareSerial.h>
-#include "StepperMotor.cpp"
-
 #ifndef _SPINDLE_
 #define _SPINDLE_
 
-namespace SPINDLE
+#include <Arduino.h>
+
+namespace Spindle
 {
     const uint8_t pin = 23;
 

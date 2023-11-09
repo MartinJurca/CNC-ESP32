@@ -1,12 +1,12 @@
+#ifndef _PIPELINE_DIVIDER_
+#define _PIPELINE_DIVIDER_
+
 #include <Arduino.h>
 #include "DataTransmition.cpp"
 #include <LinkedList.h>
 #include <map>
 #include "Timer.cpp"
 #include "soc/rtc_wdt.h"
-
-#ifndef _PIPELINE_DIVIDER_
-#define _PIPELINE_DIVIDER_
 
 class Pipeline
 {
@@ -78,7 +78,7 @@ class Pipeline
         blocking = false;
     }
 
-    unsigned int IRAM_ATTR Available()
+    inline unsigned int Available()
     {
         return size;
     }
@@ -111,6 +111,7 @@ namespace PipelineDivider
     {
         using DataTransmition::serial1rxdata;
         using DataTransmition::serial2rxdata;
+        using DataTransmition::CmdSr2;
         const char selector = '|';
         const char divider = ':';
         while (true)
@@ -186,6 +187,8 @@ namespace PipelineDivider
                 }
                 serial1rxdata.clear();
             }
+            int command = 0, parameter = 0;
+            if (CmdSr2.Next(command, parameter)) HandlePipeline->Add(command, parameter);
             vTaskDelay(5 / portTICK_PERIOD_MS);
         }
     }

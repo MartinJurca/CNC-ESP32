@@ -14,35 +14,133 @@
 #include "DataTransmition.cpp"
 #include "PipelineDivider.cpp"
 
+FAN MbFan(12, 0);
+
 void setup()
 {
   DataTransmition::Begin();
   PipelineDivider::Begin();
   SrBegin();
-  //while (true) delay(10);
 }
 
 void loop()
 {
   using namespace PipelineDivider;
-  if (CommandPipeline->Available() != 0)
+  using namespace Movement;
+  using namespace CommonData;
+  if (CommandPipeline->Available() > 0)
   {
-    while (CommandPipeline->Available() > 0)
+    int command = 0;
+    long parameter = 0;
+    CommandPipeline->Read(command, parameter);
+    switch (command)
     {
-      int com = 0;
-      long par = 0;
-      CommandPipeline->Read(com, par);
-      Serial.println("C|" + String(com) + String(":") + String(par));
-    }
-  }
-  if (MotionPipeline->Available() != 0)
-  {
-    while (MotionPipeline->Available() > 0)
-    {
-      int com = 0;
-      long par = 0;
-      MotionPipeline->Read(com, par);
-      Serial.println("M|" + String(com) + String(":") + String(par));
+      case 1: // získání celkového stavu
+      {
+        //
+      }
+      break;
+
+      case 2: // získání volné paměti
+      {
+        //
+      }
+      break;
+
+      case 3: // spustí ventilátor na zadanou hodnotu
+      {
+        MbFan.Set(parameter);
+      }
+      break;
+
+      case 4: // zapne zvolenou osu
+      {
+        switch (parameter)
+        {
+          default: Serial.println("[AxisPowerOn:InvalidArgument]");
+          case 0: SMX.Enable(); break;
+          case 1: SMY.Enable(); break;
+          case 2: SMZ.Enable(); break;
+          case 3: SMX.Enable(); SMY.Enable(); SMZ.Enable(); break;
+        }
+      }
+      break;
+
+      case 5: // vypne zvolenou osu
+      {
+        switch (parameter)
+        {
+          default: Serial.println("[AxisPowerOff:InvalidArgument]");
+          case 0: SMX.Disable(); break;
+          case 1: SMY.Disable(); break;
+          case 2: SMZ.Disable(); break;
+          case 3: SMX.Disable(); SMY.Disable(); SMZ.Disable(); break;
+        }
+      }
+      break;
+
+      case 6: // nastaví krokování XY
+      {
+        if ((parameter < 0) || (parameter > 4))
+        {
+          Serial.println("[SetSteppingXY:InvalidArgument]");
+        }
+        else
+        {
+          SMX.SetStepping(parameter);
+          SMY.SetStepping(parameter);
+        }
+      }
+      break;
+
+      case 7: // nastaví krokování Z
+      {
+        if ((parameter < 0) || (parameter > 4)) Serial.println("[SetSteppingZ:InvalidArgument]");
+        else SMZ.SetStepping(parameter);
+      }
+      break;
+
+      case 8: // nastaví absolutní pozici osy X
+      {
+        absoluteposition[x] = parameter;
+      }
+      break;
+
+      case 9: // nastaví absolutní pozici osy Y
+      {
+        absoluteposition[y] = parameter;
+      }
+      break;
+
+      case 10: // nastaví absolutní pozici osy Z
+      {
+        absoluteposition[z] = parameter;
+      }
+      break;
+
+      case 11: // nastaví relativní pozici osy X
+      {
+        relativeposition[x] = parameter;
+      }
+      break;
+
+      case 12: // nastaví relativní pozici osy Y
+      {
+        relativeposition[y] = parameter;
+      }
+      break;
+
+      case 13: // nastaví relativní pozici osy Z
+      {
+        relativeposition[z] = parameter;
+      }
+      break;
+
+      case 14: // najetí os do výchozích poloh
+      {
+        //
+      }
+      break;
     }
   }
 }

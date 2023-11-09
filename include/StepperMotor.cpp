@@ -1,8 +1,8 @@
-#include <Arduino.h>
-#include "ShiftRegister.cpp"
-
 #ifndef _STEPPER_MOTOR_
 #define _STEPPER_MOTOR_
+
+#include <Arduino.h>
+#include "ShiftRegister.cpp"
 
 struct driverpins
 {
