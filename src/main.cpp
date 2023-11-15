@@ -13,14 +13,22 @@
 #include "Vector.h"
 #include "DataTransmition.cpp"
 #include "PipelineDivider.cpp"
+#include "EndStop.cpp"
+#include "TimerM.cpp"
 
 FAN MbFan(12, 0);
+TIMER TmrOperate(1000);
+TIMER TmrHandleSendInfo(100);
 
 void setup()
 {
   DataTransmition::Begin();
   PipelineDivider::Begin();
+  EndStop::Begin();
   SrBegin();
+  SMX.Begin();
+  SMY.Begin();
+  SMZ.Begin();
 }
 
 void loop()
@@ -28,10 +36,14 @@ void loop()
   using namespace PipelineDivider;
   using namespace Movement;
   using namespace CommonData;
+  int command = 0;
+  long parameter = 0;
+  bool handlesendinfo = false;
+
+  if (TmrOperate.Update()) Serial.println("[Operate:" + String(millis()) + "]");
+
   if (CommandPipeline->Available() > 0)
   {
-    int command = 0;
-    long parameter = 0;
     CommandPipeline->Read(command, parameter);
     switch (command)
     {
@@ -138,10 +150,304 @@ void loop()
 
       case 14: // najetí os do výchozích poloh
       {
+        using namespace EndStop;
+        switch (parameter)
+        {
+          default: Serial.println("[AxisHoming:InvalidArgument]");
+
+          case 0:
+          if (HomingTaskX()) Serial.println("[AxisHoming:Done:0]");
+          else Serial.println("[AxisHoming:Fail:0]");
+          break;
+
+          case 1:
+          if (HomingTaskY()) Serial.println("[AxisHoming:Done:1]");
+          else Serial.println("[AxisHoming:Fail:1]");
+          break;
+
+          case 2:
+          if (HomingTaskZ()) Serial.println("[AxisHoming:Done:2]");
+          else Serial.println("[AxisHoming:Fail:2]");
+          break;
+
+          case 3:
+          if (HomingTaskZ()) Serial.println("[AxisHoming:Done:2]");
+          else {Serial.println("[AxisHoming:Fail:2]"); break;}
+          if (HomingTaskX()) Serial.println("[AxisHoming:Done:0]");
+          else {Serial.println("[AxisHoming:Fail:0]"); break;}
+          if (HomingTaskY()) Serial.println("[AxisHoming:Done:1]");
+          else {Serial.println("[AxisHoming:Fail:1]"); break;}
+          break;
+        }
+      }
+      break;
+
+      case 15: // zapnutí nebo vypnutí vřetene
+      {
+        switch (parameter)
+        {
+          default: Serial.println("[SetSpindle:InvalidArgument]");
+          case 0: Spindle::Stop(); break;
+          case 1: Spindle::Start(); break;
+        }
+      }
+      break;
+
+      case 16: // vykoná uloženou trasu
+      {
         //
       }
       break;
+
+      case 17: // zapnutí nebo vypnutí pcoverride
+      {
+        switch (parameter)
+        {
+          default: Serial.println("[SetPcOverride:InvalidArgument]");
+          case 0: pcoverride = false; break;
+          case 1: pcoverride = true; break;
+        }
+      }
+      break;
     }
+  }
+
+  if (HandlePipeline->Available() > 0)
+  {
+    HandlePipeline->Read(command, parameter);
+    if (pcoverride) {Serial2.print("a#"); command = 0;}
+    else Serial2.print("b#");
+    int hxydelay = 2000, hzdelay = 4000; // us
+    switch (command)
+    {
+      case 1:
+      {
+        if (parameter > 0)
+        {
+          int cycles = (parameter * SMX.GetStepping()) * 13;
+          long _delay = hxydelay / SMX.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(50)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMX.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(50);
+          handlesendinfo = true;
+        }
+        else
+        {
+          parameter = abs(parameter);
+          int cycles = (parameter * SMX.GetStepping()) * 13;
+          long _delay = hxydelay / SMX.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(54)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMX.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(54);
+          handlesendinfo = true;
+        }
+      }
+      break;
+      
+      case 2:
+      {
+        if (parameter > 0)
+        {
+          int cycles = (parameter * SMY.GetStepping()) * 13;
+          long _delay = hxydelay / SMY.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(48)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMY.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(48);
+          handlesendinfo = true;
+        }
+        else
+        {
+          parameter = abs(parameter);
+          int cycles = (parameter * SMY.GetStepping()) * 13;
+          long _delay = hxydelay / SMY.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(52)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMY.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(52);
+          handlesendinfo = true;
+        }
+      }
+      break;
+
+      case 3:
+      {
+        if (parameter > 0)
+        {
+          int cycles = (parameter * SMZ.GetStepping()) * 80;
+          long _delay = hzdelay / SMZ.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(56)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMZ.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(56);
+          handlesendinfo = true;
+        }
+        else
+        {
+          parameter = abs(parameter);
+          int cycles = (parameter * SMZ.GetStepping()) * 80;
+          long _delay = hxydelay / SMZ.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(57)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMZ.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(57);
+          handlesendinfo = true;
+        }
+      }
+      break;
+
+      case 4:
+      {
+        if (parameter > 0)
+        {
+          int cycles = (parameter * SMX.GetStepping()) * 1;
+          long _delay = hxydelay / SMX.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(50)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMX.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(50);
+          handlesendinfo = true;
+        }
+        else
+        {
+          parameter = abs(parameter);
+          int cycles = (parameter * SMX.GetStepping()) * 1;
+          long _delay = hxydelay / SMX.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(54)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMX.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(54);
+          handlesendinfo = true;
+        }
+      }
+      break;
+      
+      case 5:
+      {
+        if (parameter > 0)
+        {
+          int cycles = (parameter * SMY.GetStepping()) * 1;
+          long _delay = hxydelay / SMY.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(48)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMY.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(48);
+          handlesendinfo = true;
+        }
+        else
+        {
+          parameter = abs(parameter);
+          int cycles = (parameter * SMY.GetStepping()) * 1;
+          long _delay = hxydelay / SMY.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(52)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMY.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(52);
+          handlesendinfo = true;
+        }
+      }
+      break;
+
+      case 6:
+      {
+        if (parameter > 0)
+        {
+          int cycles = (parameter * SMZ.GetStepping()) * 8;
+          long _delay = hzdelay / SMZ.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(56)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMZ.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(56);
+          handlesendinfo = true;
+        }
+        else
+        {
+          parameter = abs(parameter);
+          int cycles = (parameter * SMZ.GetStepping()) * 8;
+          long _delay = hxydelay / SMZ.GetStepping();
+          int updates = 0;
+          for (int i = 0; i < cycles; i++)
+          {
+            if (!Step(57)) break;
+            delayMicroseconds(_delay);
+            updates = i + 1;
+          }
+          updates /= SMZ.GetStepping();
+          for (int i = 0; i < updates; i++) UpdatePosition(57);
+          handlesendinfo = true;
+        }
+      }
+      break;
+
+      case 7: relativeposition[0] = 0; handlesendinfo = true; break;
+      case 8: relativeposition[1] = 0; handlesendinfo = true; break;
+      case 9: relativeposition[2] = 0; handlesendinfo = true; break;
+    }
+  }
+
+  if (handlesendinfo) if (TmrHandleSendInfo.Update())
+  {
+    Serial2.print("x<" + String(relativeposition[0]) + ">#");
+    Serial2.print("y<" + String(relativeposition[1]) + ">#");
+    Serial2.print("z<" + String(relativeposition[2]) + ">#");
+    handlesendinfo = false;
   }
 }
 

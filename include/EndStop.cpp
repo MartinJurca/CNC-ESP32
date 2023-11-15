@@ -9,14 +9,14 @@
 
 namespace EndStop
 {
-    const uint8_t pinx = 34, piny = 39, pinzl = 36, pinzh = 18;
-    const unsigned long xydelay = 1000, zdelay = 1000; //us
+    const uint8_t pinx = 39, piny = 34, pinzl = 36, pinzh = 18;
+    const unsigned long xydelay = 60, zdelay = 80; //us
     bool* stopflag = nullptr;
 
     void Begin()
     {
         pinMode(pinx, INPUT);
-        pinMode(pinx, INPUT);
+        pinMode(piny, INPUT);
         pinMode(pinzl, INPUT);
         pinMode(pinzh, INPUT_PULLUP);
     }
@@ -52,8 +52,8 @@ namespace EndStop
         using CommonData::relativeposition;
         if (!SMX.IsEnabled()) return false;
         int oldstepping = SMX.GetStepping();
-        SMX.SetStepping(1);
-        TIMER TmrTimeOut(15000UL);
+        SMX.SetStepping(4);
+        TIMER TmrTimeOut(8000UL);
         TmrTimeOut.Update();
         while (!TmrTimeOut.Update())
         {
@@ -96,8 +96,8 @@ namespace EndStop
         using CommonData::relativeposition;
         if (!SMY.IsEnabled()) return false;
         int oldstepping = SMY.GetStepping();
-        SMY.SetStepping(1);
-        TIMER TmrTimeOut(15000UL);
+        SMY.SetStepping(4);
+        TIMER TmrTimeOut(6000UL);
         TmrTimeOut.Update();
         while (!TmrTimeOut.Update())
         {
@@ -140,8 +140,8 @@ namespace EndStop
         using CommonData::relativeposition;
         if (!SMZ.IsEnabled()) return false;
         int oldstepping = SMZ.GetStepping();
-        SMZ.SetStepping(1);
-        TIMER TmrTimeOut(15000UL);
+        SMZ.SetStepping(4);
+        TIMER TmrTimeOut(30000UL);
         TmrTimeOut.Update();
         while (!TmrTimeOut.Update())
         {

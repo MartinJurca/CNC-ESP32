@@ -19,9 +19,9 @@ namespace CommonData
     const uint8_t xymindelay = 1, zmindelay = 1; //us
     const int boundaries[3][2]
     {
-        {0, 5000},
-        {0, 5000},
-        {-2000, 2000}
+        {0, 4450},
+        {0, 3700},
+        {-16800, 0}
     };
 }
 

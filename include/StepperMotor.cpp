@@ -38,7 +38,7 @@ class STEPPERMOTOR
         pins = pins_struct;
         enabled = false;
         direction = false;
-        stepping = 0;
+        stepping = 1;
     }
 
     void Begin()
@@ -166,6 +166,6 @@ class STEPPERMOTOR
 const driverpins mz = {1, 2, 3, 4, 5, 6, 7, 8};
 const driverpins mx = {9, 10, 11, 12, 13, 14, 15, 16};
 const driverpins my = {17, 18, 19, 20, 21, 22, 23, 24};
-STEPPERMOTOR SMX(mx), SMY(my), SMZ(mz);
+STEPPERMOTOR SMX(my), SMY(mx), SMZ(mz);
 
 #endif

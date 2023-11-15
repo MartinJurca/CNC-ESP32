@@ -10,7 +10,7 @@ namespace Movement
 {
     const bool xf = true, xb = false;
     const bool yf = true, yb = false;
-    const bool zf = true, zb = false;
+    const bool zf = false, zb = true;
     const uint8_t x = 0, y = 1, z = 2, min = 0, max = 1;
     bool* stopflag = nullptr;
 
