@@ -15,6 +15,7 @@
 #include "PipelineDivider.cpp"
 #include "EndStop.cpp"
 #include "TimerM.cpp"
+#include "mbLog.cpp"
 
 FAN MbFan(12, 0);
 TIMER TmrOperate(1000);
@@ -49,13 +50,23 @@ void loop()
     {
       case 1: // získání celkového stavu
       {
-        //
+        Send << "[AbsolutePosition:x:" << absoluteposition[0] << "]" << endl;
+        Send << "[AbsolutePosition:y:" << absoluteposition[1] << "]" << endl;
+        Send << "[AbsolutePosition:z:" << absoluteposition[2] << "]" << endl;
+        Send << "[RelativePosition:x:" << relativeposition[0] << "]" << endl;
+        Send << "[RelativePosition:y:" << relativeposition[1] << "]" << endl;
+        Send << "[RelativePosition:z:" << relativeposition[2] << "]" << endl;
+        Send << "[AxisHomed:x:" << axishomed[0] << "]" << endl;
+        Send << "[AxisHomed:y:" << axishomed[1] << "]" << endl;
+        Send << "[AxisHomed:z:" << axishomed[2] << "]" << endl;
+        Send << "[PowerSupply::" << powersupply << endl;
       }
       break;
 
       case 2: // získání volné paměti
       {
-        //
+        //Serial.println("[FreeHeap::" + String(ESP.getFreeHeap()) + "]");
+        Send << "[FreeHeap::" << ESP.getFreeHeap() << "]" << endl;
       }
       break;
 
@@ -195,7 +206,23 @@ void loop()
 
       case 16: // vykoná uloženou trasu
       {
-        //
+        using Movement::ExeMotion;
+        switch (parameter)
+        {
+          default: Serial.println("[ExeMotion:InvalidArgument]"); break;
+          case 0:
+          if (ExeMotion(savedmotion[0])) Serial.println("[ExeMotion:Done:0]");
+          else Serial.println("[ExeMotion:Failed:0]");
+          break;
+          case 1:
+          if (ExeMotion(savedmotion[1])) Serial.println("[ExeMotion:Done:1]");
+          else Serial.println("[ExeMotion:Failed:1]");
+          break;
+          case 2:
+          if (ExeMotion(savedmotion[2])) Serial.println("[ExeMotion:Done:2]");
+          else Serial.println("[ExeMotion:Failed:2]");
+          break;
+        }
       }
       break;
 
@@ -204,8 +231,8 @@ void loop()
         switch (parameter)
         {
           default: Serial.println("[SetPcOverride:InvalidArgument]");
-          case 0: pcoverride = false; break;
-          case 1: pcoverride = true; break;
+          case 0: pcoverride = false; Serial2.print("b#"); break;
+          case 1: pcoverride = true; Serial2.print("a#"); break;
         }
       }
       break;

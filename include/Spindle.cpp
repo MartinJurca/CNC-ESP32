@@ -11,6 +11,7 @@ namespace Spindle
     {
         pinMode(pin, OUTPUT);
         digitalWrite(pin, HIGH);
+        return true;
     }
 
     void Stop()

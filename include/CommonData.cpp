@@ -8,7 +8,9 @@ namespace CommonData
 {
     int absoluteposition[3] = {0, 0, 0};
     int relativeposition[3] = {0, 0, 0};
+    bool axishomed[3] = {false, false, false};
     bool pcoverride = false;
+    bool powersupply = true;
     Motion savedmotion[3] = {Motion(), Motion(), Motion()};
     // nastavení
     const char* name = "CNC-ESP32";
