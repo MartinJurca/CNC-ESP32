@@ -47,6 +47,8 @@ class Motion
         if (size == 0) return;
         psteps = new uint8_t[size];
         pdelays = new long[size];
+        //psteps = (uint8_t*)malloc(size);
+        //pdelays = (long*)malloc(4 * size);
     }
 
     void Clear()
@@ -58,14 +60,14 @@ class Motion
         pdelays = nullptr;
     }
 
-    void IRAM_ATTR Read(const uint16_t index, uint8_t &step, long &delay)
+    inline void Read(const uint16_t index, uint8_t &step, long &delay)
     {
         if (index >= size) return;
         step = psteps[index];
         delay = pdelays[index];
     }
 
-    bool IRAM_ATTR Write(const uint16_t index, const uint8_t step, const long delay)
+    inline bool Write(const uint16_t index, const uint8_t step, const long delay)
     {
         if (index >= size) return false;
         psteps[index] = step;
@@ -73,14 +75,14 @@ class Motion
         return true;
     }
 
-    bool IRAM_ATTR WriteStep(const uint16_t index, const uint8_t step)
+    inline bool WriteStep(const uint16_t index, const uint8_t step)
     {
         if (index >= size) return false;
         psteps[index] = step;
         return true;
     }
 
-    bool IRAM_ATTR WriteDelay(const uint16_t index, const long delay)
+    inline bool WriteDelay(const uint16_t index, const long delay)
     {
         if (index >= size) return false;
         pdelays[index] = delay;

@@ -2,6 +2,7 @@
 //#define _PIPELINE_DIVIDER_DEBUG_
 //
 #include <Arduino.h>
+#include "CommonData.cpp"
 #include "ShiftRegister.cpp"
 #include "StepperMotor.cpp"
 #include "COMMAND_HANDLER.cpp"
@@ -16,6 +17,7 @@
 #include "EndStop.cpp"
 #include "TimerM.cpp"
 #include "mbLog.cpp"
+#include "MotionThread.cpp"
 
 FAN MbFan(12, 0);
 TIMER TmrOperate(1000);
@@ -23,8 +25,10 @@ TIMER TmrHandleSendInfo(100);
 
 void setup()
 {
+  CommonData::Init();
   DataTransmition::Begin();
   PipelineDivider::Begin();
+  MotionThread::Begin();
   EndStop::Begin();
   SrBegin();
   SMX.Begin();
@@ -59,7 +63,9 @@ void loop()
         Send << "[AxisHomed:x:" << axishomed[0] << "]" << endl;
         Send << "[AxisHomed:y:" << axishomed[1] << "]" << endl;
         Send << "[AxisHomed:z:" << axishomed[2] << "]" << endl;
-        Send << "[PowerSupply::" << powersupply << endl;
+        Send << "[PowerSupply::" << powersupply << "]" << endl;
+        Send << "[Name:" << name << "]" << endl;
+        Send << "[SoftwareVersion:" << softwareversion << "]" << endl;
       }
       break;
 

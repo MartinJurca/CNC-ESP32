@@ -182,6 +182,17 @@ namespace PipelineDivider
                     {
                         case 'c': while(!CommandPipeline->Add(command, parameter)) vTaskDelay(2 / portTICK_PERIOD_MS); break;
                         case 'm': while(!MotionPipeline->Add(command, parameter)) vTaskDelay(2 / portTICK_PERIOD_MS); break;
+                        case 'q':
+                        {
+                            using CommonData::stopflag;
+                            switch (command)
+                            {
+                                case 1: esp_restart();
+                                case 2: stopflag = true; break;
+                                case 3: stopflag = false; break;
+                            }
+                        }
+                        break;
                         default: Serial.println("PipelineDivider:InvalidPipeline"); break;
                     }
                 }

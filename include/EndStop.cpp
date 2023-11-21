@@ -50,6 +50,7 @@ namespace EndStop
         using namespace Movement;
         using CommonData::absoluteposition;
         using CommonData::relativeposition;
+        using CommonData::axishomed;
         if (!SMX.IsEnabled()) return false;
         int oldstepping = SMX.GetStepping();
         SMX.SetStepping(4);
@@ -69,6 +70,7 @@ namespace EndStop
                     case 8: SMX.SetStepping(3); break;
                     case 16: SMX.SetStepping(4); break;
                 }
+                axishomed[0] = true;
                 return true;
             }
             if (stopflag != nullptr) if (*stopflag) break;
@@ -94,6 +96,7 @@ namespace EndStop
         using namespace Movement;
         using CommonData::absoluteposition;
         using CommonData::relativeposition;
+        using CommonData::axishomed;
         if (!SMY.IsEnabled()) return false;
         int oldstepping = SMY.GetStepping();
         SMY.SetStepping(4);
@@ -113,6 +116,7 @@ namespace EndStop
                     case 8: SMY.SetStepping(3); break;
                     case 16: SMY.SetStepping(4); break;
                 }
+                axishomed[1];
                 return true;
             }
             if (stopflag != nullptr) if (*stopflag) break;
@@ -138,6 +142,7 @@ namespace EndStop
         using namespace Movement;
         using CommonData::absoluteposition;
         using CommonData::relativeposition;
+        using CommonData::axishomed;
         if (!SMZ.IsEnabled()) return false;
         int oldstepping = SMZ.GetStepping();
         SMZ.SetStepping(4);
@@ -157,6 +162,7 @@ namespace EndStop
                     case 8: SMZ.SetStepping(3); break;
                     case 16: SMZ.SetStepping(4); break;
                 }
+                axishomed[2] = true;
                 return true;
             }
             if (stopflag != nullptr) if (*stopflag) break;
